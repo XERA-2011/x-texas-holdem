@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Limit open PRs to avoid overwhelming the repo
+    open-pull-requests-limit: 10
+    # Group dependencies to minimize PR noise
+    groups:
+      dependencies:
+        patterns:
+          - "*"
