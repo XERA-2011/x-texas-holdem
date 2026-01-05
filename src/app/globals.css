@@ -68,7 +68,7 @@
   --ring: 0 0% 0%;
 }
 
-/* Global base styles */
+/* Global base styles - Enforce pure black/white theme */
 * {
   box-sizing: border-box;
 }
@@ -117,6 +117,43 @@ a {
 
 a:hover {
   color: hsl(var(--muted-foreground));
+}
+
+/* Form elements base styling */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+/* Override any default browser styles that might introduce colors */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+textarea,
+select {
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: hsl(var(--ring));
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
 }
 
 /* Selection styling */

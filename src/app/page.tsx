@@ -4,6 +4,7 @@ import { usePokerGame } from '@/hooks/use-poker-game';
 import { GameTable } from '@/components/game/game-table';
 import { GameControls } from '@/components/game/game-controls';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { GithubIcon } from '@/components/icons/github-icon';
 
 
 export default function TexasHoldemPage() {
@@ -32,8 +33,17 @@ export default function TexasHoldemPage() {
     <div className="w-full h-dvh text-zinc-900 dark:text-zinc-100 selection:bg-zinc-300 dark:selection:bg-zinc-700 selection:text-black overflow-hidden flex flex-col overscroll-none">
       <h1 className="sr-only">德州扑克</h1>
 
-      {/* Theme Toggle - Absolute Top Right */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* Top Right Controls */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
+        <a
+          href="https://github.com/XERA-2011/x-texas-holdem"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors"
+          aria-label="GitHub Source Code"
+        >
+          <GithubIcon className="w-6 h-6" />
+        </a>
         <ThemeToggle />
       </div>
 
