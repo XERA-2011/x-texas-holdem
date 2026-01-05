@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xera-2011.github.io/x-texas-holdem/sitemap.xml
