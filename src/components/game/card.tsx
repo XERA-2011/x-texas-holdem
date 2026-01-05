@@ -12,7 +12,7 @@ export function Card({ card, hidden, className = "", isWinning }: CardProps) {
   if (hidden || !card) {
     return (
       <div
-        className={`w-8 h-11 sm:w-12 sm:h-16 bg-zinc-800 border-[1px] sm:border-2 border-zinc-600 rounded-sm sm:rounded-md shadow-sm bg-[linear-gradient(45deg,#27272a_25%,transparent_25%,transparent_75%,#27272a_75%,#27272a),linear-gradient(45deg,#27272a_25%,transparent_25%,transparent_75%,#27272a_75%,#27272a)] bg-[length:6px_6px] sm:bg-[length:10px_10px] ${className}`}
+        className={`w-8 h-11 sm:w-12 sm:h-16 bg-zinc-800 border-[1px] sm:border-2 border-zinc-600 rounded-sm sm:rounded-md shadow-sm bg-[repeating-linear-gradient(45deg,#52525b,#52525b_1px,transparent_1px,transparent_8px),repeating-linear-gradient(-45deg,#52525b,#52525b_1px,transparent_1px,transparent_8px)] bg-[position:center] ${className}`}
       />
     );
   }
