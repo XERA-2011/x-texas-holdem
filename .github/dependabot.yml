@@ -1,14 +1,39 @@
 version: 2
 updates:
+  # NPM dependencies
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+    # Automatically rebase outdated PRs to avoid merge conflicts
+    rebase-strategy: auto
     # Limit open PRs to avoid overwhelming the repo
     open-pull-requests-limit: 10
     # Group dependencies to minimize PR noise
     groups:
-      dependencies:
-        patterns:
-          - "*"
+      # Production dependencies
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Development dependencies
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Major updates (kept separate for visibility)
+      major-updates:
+        update-types:
+          - "major"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    rebase-strategy: auto
+    open-pull-requests-limit: 5
