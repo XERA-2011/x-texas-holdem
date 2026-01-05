@@ -24,8 +24,12 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
       - name: Enable auto-merge for Dependabot PRs
-        # Only auto-merge patch and minor updates, major updates require manual review
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        # Auto-merge if:
+        # 1. GitHub Actions updates (all versions including major)
+        # 2. npm updates that are not major versions
+        if: |
+          steps.metadata.outputs.package-ecosystem == 'github_actions' ||
+          steps.metadata.outputs.update-type != 'version-update:semver-major'
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
