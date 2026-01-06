@@ -20,15 +20,15 @@ interface LogProps {
 const c = (r: Rank, s: Suit) => new Card(r, s);
 
 const HAND_EXAMPLES = [
-  { name: '1. 同花顺 (Straight Flush)', cards: [c('A', '♠'), c('K', '♠'), c('Q', '♠'), c('J', '♠'), c('T', '♠')] },
-  { name: '2. 四条 (Quads)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('A', '♦'), c('K', '♠')] },
-  { name: '3. 葫芦 (Full House)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('K', '♥')] },
-  { name: '4. 同花 (Flush)', cards: [c('A', '♠'), c('J', '♠'), c('8', '♠'), c('5', '♠'), c('2', '♠')] },
-  { name: '5. 顺子 (Straight)', cards: [c('Q', '♠'), c('J', '♥'), c('T', '♦'), c('9', '♣'), c('8', '♠')] },
-  { name: '6. 三条 (Trips)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('Q', '♥')] },
-  { name: '7. 两对 (Two Pair)', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('K', '♠'), c('Q', '♥')] },
-  { name: '8. 对子 (Pair)', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('Q', '♠'), c('J', '♥')] },
-  { name: '9. 高牌 (High Card)', cards: [c('A', '♠'), c('K', '♥'), c('Q', '♣'), c('J', '♠'), c('9', '♥')] },
+  { name: '1. 同花顺 (Straight Flush)', cards: [c('A', '♠'), c('K', '♠'), c('Q', '♠'), c('J', '♠'), c('T', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { name: '2. 四条 (Quads)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('A', '♦'), c('K', '♠')], winningIndices: [0, 1, 2, 3] },
+  { name: '3. 葫芦 (Full House)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('K', '♥')], winningIndices: [0, 1, 2, 3, 4] },
+  { name: '4. 同花 (Flush)', cards: [c('A', '♠'), c('J', '♠'), c('8', '♠'), c('5', '♠'), c('2', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { name: '5. 顺子 (Straight)', cards: [c('Q', '♠'), c('J', '♥'), c('T', '♦'), c('9', '♣'), c('8', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { name: '6. 三条 (Trips)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('Q', '♥')], winningIndices: [0, 1, 2] },
+  { name: '7. 两对 (Two Pair)', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('K', '♠'), c('Q', '♥')], winningIndices: [0, 1, 2, 3] },
+  { name: '8. 对子 (Pair)', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('Q', '♠'), c('J', '♥')], winningIndices: [0, 1] },
+  { name: '9. 高牌 (High Card)', cards: [c('A', '♠'), c('K', '♥'), c('Q', '♣'), c('J', '♠'), c('9', '♥')], winningIndices: [0] },
 ];
 
 export function GameLog({ logs, players, communityCards }: LogProps) {
@@ -64,13 +64,19 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
                       {ex.name.split(' (')[0]}
                     </div>
                     <div className="flex gap-1">
-                      {ex.cards.map((card, idx) => (
-                        <CardUI
-                          key={idx}
-                          card={card}
-                          className="!w-6 !h-9 sm:!w-8 sm:!h-11 text-[8px] sm:text-[10px]"
-                        />
-                      ))}
+                      {ex.cards.map((card, idx) => {
+                        const isWinning = ex.winningIndices.includes(idx);
+                        return (
+                          <CardUI
+                            key={idx}
+                            card={card}
+                            className={`!w-6 !h-9 sm:!w-8 sm:!h-11 text-[8px] sm:text-[10px] ${isWinning
+                              ? '!border-yellow-500 !border-3 shadow-[0_0_4px_rgba(234,179,8,0.4)]'
+                              : '!border-transparent'
+                              }`}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
