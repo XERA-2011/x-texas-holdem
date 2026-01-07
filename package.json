@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack -p 2011",
     "build": "next build",
+    "build:aliyun": "cross-env NEXT_PUBLIC_BASE_PATH=/texas-holdem next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -25,6 +26,7 @@
     "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
