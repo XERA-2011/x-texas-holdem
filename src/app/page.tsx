@@ -78,6 +78,8 @@ export default function TexasHoldemPage() {
             onNextRound={startNextRound}
             isGameOver={isGameOver}
             onReset={resetGame}
+            playerChips={human.chips}
+            potSize={pot}
           />
         </div>
       </div>

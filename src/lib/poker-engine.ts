@@ -25,7 +25,9 @@ export class Card {
   }
 
   toString(): string {
-    return `${this.suit}${this.rank}`;
+    // 显示时将 'T' 转换为 '10'，内部逻辑保持 'T' 不变
+    const displayRank = this.rank === 'T' ? '10' : this.rank;
+    return `${this.suit}${displayRank}`;
   }
 
   static fromString(str: string): Card {
@@ -911,10 +913,10 @@ export class PokerGameEngine {
     }
   }
 
-  humanAction(type: 'fold' | 'call' | 'raise' | 'allin') {
+  humanAction(type: 'fold' | 'call' | 'raise' | 'allin', raiseAmount: number = 20) {
     const p = this.players[0];
     if (this.currentTurnIdx !== 0 || p.status !== 'active') return;
-    this.handleAction(p, type, 20); // 默认加注 20
+    this.handleAction(p, type, raiseAmount);
   }
 
   processTurn() {

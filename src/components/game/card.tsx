@@ -38,7 +38,7 @@ export function Card({ card, hidden, className = "", isWinning }: CardProps) {
         {card.suit}
       </div>
       <div className={`text-[10px] sm:text-base font-bold leading-none ${isRed ? 'text-red-600' : 'text-gray-900'}`}>
-        {card.rank}
+        {card.rank === 'T' ? '10' : card.rank}
       </div>
     </div>
   );

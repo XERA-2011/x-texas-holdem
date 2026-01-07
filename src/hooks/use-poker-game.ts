@@ -25,9 +25,9 @@ export function usePokerGame() {
     };
   }, []);
 
-  const humanAction = useCallback((type: 'fold' | 'call' | 'raise' | 'allin') => {
+  const humanAction = useCallback((type: 'fold' | 'call' | 'raise' | 'allin', raiseAmount?: number) => {
     if (engineRef.current) {
-      engineRef.current.humanAction(type);
+      engineRef.current.humanAction(type, raiseAmount);
     }
   }, []);
 

@@ -86,7 +86,7 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
 
           <button
             onClick={() => setShowRules(true)}
-            className="text-[10px] px-2 py-0.5 rounded transition-all duration-300 bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-zinc-600 dark:text-gray-300 border border-zinc-200 dark:border-white/10"
+            className="text-[10px] px-2 py-0.5 rounded transition-all duration-300 bg-zinc-800 dark:bg-white hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-black border border-zinc-700 dark:border-zinc-300"
           >
             规则
           </button>
@@ -121,8 +121,8 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
               setTimeout(() => setCopyState('idle'), 2000);
             }}
             className={`text-[10px] px-2 py-0.5 rounded transition-all duration-300 ${copyState === 'history_copied'
-              ? 'bg-green-100 text-green-900'
-              : 'bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-zinc-600 dark:text-gray-300'}`}
+              ? 'bg-green-500 text-white'
+              : 'bg-zinc-800 dark:bg-white hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-black border border-zinc-700 dark:border-zinc-300'}`}
           >
             {copyState === 'history_copied' ? '已复制' : '复制对局'}
           </button>
