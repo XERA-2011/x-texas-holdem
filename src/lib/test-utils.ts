@@ -245,6 +245,74 @@ export class ScenarioTester {
         } else {
             throw new Error(`WinRate calculation abnormal for AA: ${winRate}`);
         }
+
+        // 测试 3: 边缘牌决策 (72o Fold)
+        this.log("3. SuperAI - Marginal Hand Decision (72o)");
+        p1.hand = [Card.fromString('7s'), Card.fromString('2h')]; // 72o, 最差起手牌
+        this.engine.currentTurnIdx = 1;
+        this.engine.highestBet = 50; // facing a raise
+        p1.currentBet = 0;
+
+        // 确保不是短筹码，非偷盲，非极好赔率
+        p1.chips = 1000;
+        this.engine.pot = 100;
+
+        this.engine.aiAction(p1);
+        this.log(`P1 Match Action with 72o: ${p1.status}`);
+        if (p1.status === 'folded') {
+            this.log("Passed: SuperAI correctly folded 72o.");
+        } else {
+            // 极小概率 bluff
+            this.log(`WARNING: SuperAI did not fold 72o (Action: ${p1.status})`);
+        }
+
+        // 测试 4: 极好底池赔率自动跟注 (Excellent Pot Odds)
+        this.log("4. SuperAI - Excellent Pot Odds Auto-Call");
+        p1.status = 'active';
+        p1.hand = [Card.fromString('Ks'), Card.fromString('9d')]; // K9o, 边缘牌
+        this.engine.pot = 1000;
+        this.engine.highestBet = 20;
+        p1.currentBet = 0; // call amount = 20
+        // live players for pot odds context
+
+        // Call 20 to win 1020 => ~2% odds. Should checking call.
+
+        this.engine.aiAction(p1);
+        this.log(`P1 Action with Pot Odds ~2%: ${p1.status}, Bet: ${p1.currentBet}`);
+        if (p1.currentBet >= 20 && (p1.status as string) !== 'folded') {
+            this.log("Passed: SuperAI called with excellent pot odds.");
+        } else {
+            this.log(`FAILED: SuperAI folded with excellent pot odds?`);
+        }
+
+        // 测试 5: Heads Up 激进策略 (Wide Range)
+        this.log("5. SuperAI - Heads Up Aggression");
+        // 设置单挑
+        this.engine.players.forEach((p, i) => {
+            if (i !== 0 && i !== 1) {
+                p.isEliminated = true;
+                p.status = 'eliminated';
+            } else {
+                p.isEliminated = false;
+                p.status = 'active';
+            }
+        });
+
+        p1.hand = [Card.fromString('Qh'), Card.fromString('5s')]; // Q5o, 弱牌
+        // 在多人局通常弃牌，但在 Heads Up 很多时候可以玩
+        this.engine.currentTurnIdx = 1;
+        this.engine.highestBet = 10; // limped pot or min bet
+        p1.currentBet = 0;
+        p1.chips = 1000;
+
+        this.engine.aiAction(p1);
+        this.log(`P1 Heads Up Action with Q5o: ${(p1.status as string) === 'folded' ? 'Fold' : 'Play'}`);
+        // 这一项比较随机，只要没有报错崩溃即可，不强制断言行为，打 log 观察
+        if ((p1.status as string) !== 'folded') {
+            this.log("Observation: SuperAI played Q5o in Heads Up.");
+        } else {
+            this.log("Observation: SuperAI folded Q5o in Heads Up (RNG or tight profile).");
+        }
     }
 
     /**

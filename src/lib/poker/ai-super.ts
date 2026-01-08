@@ -47,6 +47,17 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     );
     const activeOpponentsCount = activeOpponents.length;
 
+    // 安全检查：确保手牌有效
+    if (!player.hand || player.hand.length < 2) {
+        // 手牌无效，默认弃牌
+        return {
+            action: 'fold',
+            isBluffing: false,
+            speechType: 'fold',
+            shouldSpeak: false
+        };
+    }
+
     const winRate = isPreflop
         ? getPreflopStrength(player.hand, activeOpponentsCount)
         : calculateWinRateMonteCarlo(
@@ -77,7 +88,33 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     // 多人锅时 bluff 成功率大幅降低，需要收紧范围
     const isMultiwayPot = activeOpponentsCount >= 2;
     const multiwayBluffPenalty = isMultiwayPot ? 0.5 : 1.0;  // bluff 频率减半
-    const multiwayValueThreshold = isMultiwayPot ? 0.05 : 0;  // value bet 阈值提高
+
+    // ============ Heads Up（单挑）策略 ============
+    // 单挑时大幅放宽范围，更激进地偷盲和跟注
+    const isHeadsUp = activeOpponentsCount === 1;
+    const headsUpAdjustment = isHeadsUp ? 0.15 : 0;  // 单挑时胜率阈值降低 15%
+
+    // ============ 短筹码对手检测 ============
+    // 当对手筹码很少时（< 10BB），他们的 All In 范围通常更宽
+    // 应该用更宽的范围跟注
+    const shortStackOpponents = activeOpponents.filter(p => {
+        const oppEffectiveStack = p.chips + p.currentBet;
+        return oppEffectiveStack < ctx.bigBlind * 10;
+    });
+    const hasShortStackOpponent = shortStackOpponents.length > 0;
+    const shortStackAdjustment = hasShortStackOpponent ? 0.10 : 0;  // 面对短筹码放宽 10%
+
+    // ============ 气泡期策略 (Bubble Pressure) ============
+    // 检测快被淘汰的对手（筹码 < 3BB），增加对其攻击性
+    const bubbleOpponents = activeOpponents.filter(p => {
+        const oppEffectiveStack = p.chips + p.currentBet;
+        return oppEffectiveStack < ctx.bigBlind * 3;
+    });
+    const hasBubbleOpponent = bubbleOpponents.length > 0;
+
+    // ============ 被动跟注站检测 ============
+    // 如果对手是典型的跟注站（高 VPIP，低激进度），减少 bluff，增加 value bet
+    const isCallingStation = oppStats.avgVpip > 0.6 && oppStats.avgAggression < 0.8;
 
     // ============ 个体对手档案利用 ============
     // 寻找最后一个主动下注/加注的对手，针对其特点调整策略
@@ -174,13 +211,21 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                 speechType: 'fold',
                 shouldSpeak: Math.random() < 0.2
             };
+        } else {
+            // 胜率在 0.35-0.55 之间，根据赔率决定
+            if (potOdds < 0.35) {
+                action = 'call';  // 赔率还可以，跟注
+            } else {
+                action = 'fold';  // 赔率不好，弃牌
+            }
         }
     }
 
     // ============ 偷盲注逻辑 ============
     if (isStealScenario && !isShallowStack) {
-        // 宽松范围偷盲：任何还可以的牌都尝试
-        if (winRate > 0.35 || (winRate > 0.25 && rnd < 0.5)) {
+        // Heads Up 或有气泡期对手时更激进地偷盲
+        const stealThreshold = hasBubbleOpponent || isHeadsUp ? 0.25 : 0.35;
+        if (winRate > stealThreshold || (winRate > 0.20 && rnd < 0.5)) {
             action = 'raise';
             isBluffing = winRate < 0.40;
         }
@@ -206,6 +251,9 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         }
     }
 
+    // 计算综合调整：Heads Up + 短筹码对手
+    const totalAdjustment = headsUpAdjustment + shortStackAdjustment;
+
     // A. 极强牌 / 坚果 (Monster)
     if (winRate > 0.85 || (winRate > 0.7 && potOdds > 0.4)) {
         // GTO 混合策略：防止被读牌
@@ -220,8 +268,8 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
             action = 'raise';
         }
     }
-    // B. 强牌 (Strong)
-    else if (winRate > 0.65) {
+    // B. 强牌 (Strong) - 应用调整
+    else if (winRate > (0.65 - totalAdjustment)) {
         if (rnd < 0.70) action = 'raise';
         else if (rnd < 0.90) action = 'call';
         else action = 'allin';
@@ -252,6 +300,9 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                 // 应用多人锅惩罚：多人锅时大幅降低 bluff 频率
                 bluffChance *= multiwayBluffPenalty;
 
+                // 跟注站特殊处理：减少 bluff，他们会跟到底
+                if (isCallingStation) bluffChance *= 0.3;
+
                 // 利用个体对手档案：面对被动玩家更多 bluff
                 if (isTargetPassive) bluffChance += 0.15;
                 if (isTargetTight) bluffChance += 0.10;
@@ -263,8 +314,7 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
             }
         } else {
             // E. 面对下注决策
-            // 计算跟注成本比例
-            const callCostRatio = callAmt / (ctx.pot + callAmt);
+            // 复用外层 callCostRatio
             const isCheap = callCostRatio < 0.20 || callAmt <= ctx.bigBlind * 2;
 
             // 1. 隐含赔率与合适性 (Implied Odds)
@@ -305,9 +355,8 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                     }
 
                     // 检查高牌阻断：持有 A 或 K 可能阻断对手的顶对
-                    const hasHighBlocker = player.hand.some(c =>
-                        c.rank === 'A' || c.rank === 'K'
-                    );
+                    // 可用于未来扩展阻断牌逻辑
+                    // const hasHighBlocker = player.hand.some(c => c.rank === 'A' || c.rank === 'K');
 
                     // 河牌没有听牌，胜率就是最终胜率
                     if (winRate > 0.50) {
