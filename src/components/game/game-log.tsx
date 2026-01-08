@@ -116,9 +116,36 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
                 text += `[${l.type.toUpperCase()}] ${clean}\n`;
               });
 
-              navigator.clipboard.writeText(text);
-              setCopyState('history_copied');
-              setTimeout(() => setCopyState('idle'), 2000);
+              // 兼容性处理：navigator.clipboard 在非 HTTPS 环境下可能不可用
+              if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                navigator.clipboard.writeText(text).then(() => {
+                  setCopyState('history_copied');
+                  setTimeout(() => setCopyState('idle'), 2000);
+                }).catch(() => {
+                  // Fallback: 创建临时 textarea
+                  fallbackCopy(text);
+                });
+              } else {
+                // Fallback for non-secure contexts
+                fallbackCopy(text);
+              }
+
+              function fallbackCopy(str: string) {
+                const textarea = document.createElement('textarea');
+                textarea.value = str;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                  document.execCommand('copy');
+                  setCopyState('history_copied');
+                  setTimeout(() => setCopyState('idle'), 2000);
+                } catch {
+                  alert('复制失败，请手动复制');
+                }
+                document.body.removeChild(textarea);
+              }
             }}
             className={`text-[10px] px-2 py-0.5 rounded transition-all duration-300 ${copyState === 'history_copied'
               ? 'bg-green-500 text-white'
