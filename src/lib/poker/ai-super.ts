@@ -72,9 +72,77 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     const isTightTable = oppStats.avgVpip < 0.35;
     const isAggressiveTable = oppStats.avgAggression > 1.3;
 
+    // ============ SPR (Stack-to-Pot Ratio) 感知 ============
+    // SPR < 4: 浅筹码，倾向 All-in or Fold
+    // SPR 4-13: 中等筹码，标准策略
+    // SPR > 13: 深筹码，可以多看牌
+    const effectiveStack = player.chips + player.currentBet;
+    const spr = ctx.pot > 0 ? effectiveStack / ctx.pot : 20;
+    const isShallowStack = spr < 4;
+    const isDeepStack = spr > 13;
+
+    // ============ 偷盲注检测 ============
+    // 检测是否处于偷盲场景：翻前 + 位置靠后 + 前面无人加注
+    const isStealPosition = posAdvantage > 0.7; // 按钮位或CO位
+    const noRaisersYet = ctx.raisesInRound === 0 && ctx.highestBet <= ctx.bigBlind;
+    const isStealScenario = isPreflop && isStealPosition && noRaisersYet;
+
+    // ============ 3-Bet / 再加注检测 ============
+    const isFacing3Bet = ctx.raisesInRound >= 2;
+    const isFacingRaise = ctx.raisesInRound >= 1 && callAmt > ctx.bigBlind * 2;
+
     let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
     let isBluffing = false;
     const rnd = Math.random();
+
+    // ============ 浅筹码策略：Push or Fold ============
+    if (isShallowStack && isPreflop) {
+        // 简化决策：强牌直接全压，弱牌直接弃
+        if (winRate > 0.55 || (winRate > 0.45 && isStealScenario)) {
+            return {
+                action: 'allin',
+                isBluffing: false,
+                speechType: 'allin',
+                shouldSpeak: Math.random() < 0.4
+            };
+        } else if (callAmt === 0) {
+            // 免费看可以check
+            action = 'call';
+        } else if (winRate < 0.35) {
+            return {
+                action: 'fold',
+                isBluffing: false,
+                speechType: 'fold',
+                shouldSpeak: Math.random() < 0.2
+            };
+        }
+    }
+
+    // ============ 偷盲注逻辑 ============
+    if (isStealScenario && !isShallowStack) {
+        // 宽松范围偷盲：任何还可以的牌都尝试
+        if (winRate > 0.35 || (winRate > 0.25 && rnd < 0.5)) {
+            action = 'raise';
+            isBluffing = winRate < 0.40;
+        }
+    }
+
+    // ============ 面对3-Bet的策略 ============
+    if (isFacing3Bet && isPreflop) {
+        // 面对3-Bet时收紧范围
+        if (winRate > 0.70) {
+            action = rnd < 0.6 ? 'allin' : 'call'; // 4-Bet or Call
+        } else if (winRate > 0.55) {
+            action = 'call';
+        } else {
+            return {
+                action: 'fold',
+                isBluffing: false,
+                speechType: 'fold',
+                shouldSpeak: Math.random() < 0.25
+            };
+        }
+    }
 
     // A. 极强牌 / 坚果 (Monster)
     if (winRate > 0.85 || (winRate > 0.7 && potOdds > 0.4)) {
@@ -135,15 +203,36 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                 }
             } else {
                 // 翻牌后
-                if (winRate > 0.25 && potOdds < 0.45) {
-                    action = 'call'; // 听牌
-                }
-                // "好奇心"机制：如果真的很便宜，偶尔看看
-                else if (isCheap && winRate > 0.3 && rnd < 0.4) {
-                    action = 'call';
-                }
-                else {
-                    action = 'fold';
+                const isRiver = ctx.stage === 'river';
+
+                // ============ 河牌特殊逻辑 ============
+                if (isRiver) {
+                    // 河牌没有听牌，胜率就是最终胜率
+                    if (winRate > 0.50) {
+                        // 有成牌，价值下注
+                        if (callAmt === 0 && rnd < 0.7) {
+                            action = 'raise'; // 价值下注
+                        } else {
+                            action = 'call';
+                        }
+                    } else if (winRate > 0.35 && isCheap) {
+                        // 抓诈唬：如果对手可能在诈唬，便宜可以跟
+                        action = rnd < 0.5 ? 'call' : 'fold';
+                    } else {
+                        action = 'fold';
+                    }
+                } else {
+                    // Flop/Turn: 还有牌可发，考虑隐含赔率
+                    if (winRate > 0.25 && potOdds < 0.45) {
+                        action = 'call'; // 听牌
+                    }
+                    // "好奇心"机制：如果真的很便宜，偶尔看看
+                    else if (isCheap && winRate > 0.3 && rnd < 0.4) {
+                        action = 'call';
+                    }
+                    else {
+                        action = 'fold';
+                    }
                 }
             }
         }
