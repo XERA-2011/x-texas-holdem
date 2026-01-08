@@ -178,6 +178,74 @@ export class ScenarioTester {
 
         this.log(`Random Game Ended. Stage: ${this.engine.stage}, Steps: ${steps}`);
     }
+    setAIMode(mode: 'normal' | 'super') {
+        this.engine.setAIMode(mode);
+        this.log(`AI Mode set to: ${mode}`);
+    }
+
+    /**
+     * 运行超级电脑模式测试
+     * 主要验证蒙特卡洛模拟是否正常运行，以及决策是否合规
+     */
+    async runSuperAITests() {
+        this.log("Running Super AI Specific Tests...");
+        this.setAIMode('super');
+
+        // 降低模拟次数以加快测试速度
+        this.engine.superAIConfig.monteCarloSims = 100;
+
+        // 测试 1: 强牌识别
+        this.log("1. SuperAI - Strong Hand Recognition");
+        this.engine.resetGame();
+        // 给玩家 P1 发 AA
+        const p1 = this.engine.players[1]; // Bot 1
+        p1.hand = [Card.fromString('Ah'), Card.fromString('Ad')];
+        p1.chips = 1000;
+
+        // 设置单挑环境 (Heads Up) 以验证高胜率
+        this.engine.players.forEach((p, i) => {
+            if (i > 2) p.isEliminated = true; // 只留 P0, P1, P2 (3-way) 或者更少
+        });
+
+        // 强制轮到 P1 行动
+        this.engine.currentTurnIdx = 1;
+        this.engine.highestBet = 20;
+        p1.currentBet = 0;
+
+        // 执行 AI 行动
+        this.engine.aiAction(p1);
+
+        // 期望：因为是 AA，且单挑/少人，胜率很高，应该加注
+        // Note: 由于有随机性，如果没加注也不一定错，但大部分时候应该加注
+        this.log(`P1 Match Action: ${p1.currentBet > 20 ? 'Raise' : 'Call/Fold'}`);
+        if (p1.status === 'folded') {
+            this.log("WARNING: SuperAI Folded Pocket Aces Preflop?");
+        } else {
+            this.log("Passed: SuperAI played AA.");
+        }
+
+        // 测试 2: 胜率计算功能验证 (Heads Up)
+        this.log("2. SuperAI - Win Rate Calculation (Heads Up)");
+        // 让环境变成纯单挑: P1 vs P0
+        this.engine.players.forEach((p, i) => {
+            if (i !== 0 && i !== 1) {
+                p.isEliminated = true;
+                p.status = 'eliminated';
+            }
+        });
+
+        // AA vs Random Preflop => ~85%
+        // 公共牌为空
+        this.engine.communityCards = [];
+        const winRate = this.engine._calculateWinRateMonteCarlo(p1);
+        this.log(`AA Preflop WinRate (Heads Up, Sim 100): ${(winRate * 100).toFixed(1)}%`);
+
+        if (winRate > 0.7) {
+            this.log("Passed: WinRate calculation seems reasonable (>70%).");
+        } else {
+            throw new Error(`WinRate calculation abnormal for AA: ${winRate}`);
+        }
+    }
 }
 
 export async function runDebugScenarios(): Promise<string[]> {
@@ -409,6 +477,9 @@ export async function runDebugScenarios(): Promise<string[]> {
             await tester.runRandomGame();
         }
 
+        // --- 14. Super AI Tests ---
+        await tester.runSuperAITests();
+
         tester.log("All Scenarios Completed.");
     } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
@@ -421,11 +492,17 @@ export async function runDebugScenarios(): Promise<string[]> {
 /**
  * AI 专用批量测试生成器 - 生成指定数量的随机对局并验证结果
  */
-export function generateMatchReports(count: number = 10): { id: string; valid: boolean;[key: string]: unknown }[] {
+export function generateMatchReports(count: number = 10, mode: 'normal' | 'super' = 'normal'): { id: string; valid: boolean;[key: string]: unknown }[] {
     const engine = new PokerGameEngine(() => { });
+    engine.setAIMode(mode);
+    // Super mode simulation is slow, reduce Monte Carlo sims for batch reporting if needed
+    if (mode === 'super') {
+        engine.superAIConfig.monteCarloSims = 200; // Faster validation
+    }
+
     const reports = [];
 
-    console.log(`Generating ${count} random matches for validation...`);
+    console.log(`Generating ${count} random matches (${mode} mode) for validation...`);
 
     for (let i = 0; i < count; i++) {
         const result = engine.simulateRandomHand();

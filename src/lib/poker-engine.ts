@@ -269,6 +269,57 @@ export const SPEECH_LINES: Record<'bot', {
   }
 };
 
+// ============================================
+// 超级电脑模式 (Super AI Mode) 类型定义
+// ============================================
+
+/** AI 模式:  'normal' 普通模式 | 'super' 超级电脑模式 */
+export type AIMode = 'normal' | 'super';
+
+/** 超级 AI 配置 */
+export interface SuperAIConfig {
+  /** 蒙特卡洛模拟次数 (500-2000) */
+  monteCarloSims: number;
+  /** 是否启用对手建模 */
+  opponentModeling: boolean;
+  /** 思考延迟(ms) - 营造真实感 */
+  thinkingDelay: number;
+}
+
+/** 默认超级 AI 配置 */
+export const DEFAULT_SUPER_AI_CONFIG: SuperAIConfig = {
+  monteCarloSims: 1000,
+  opponentModeling: true,
+  thinkingDelay: 1500
+};
+
+/** 对手建模档案 */
+export interface OpponentProfile {
+  playerId: number;
+  /** 入池率 (Voluntarily Put In Pot) 0-1 */
+  vpip: number;
+  /** 翻前加注率 (Preflop Raise) 0-1 */
+  pfr: number;
+  /** 激进度因子 */
+  aggression: number;
+  /** 统计样本数 */
+  handsPlayed: number;
+  /** 摊牌统计：追踪对手历史摊牌的牌力 */
+  showdownStrengths: number[];
+}
+
+/** 创建默认对手档案 */
+function createDefaultProfile(playerId: number): OpponentProfile {
+  return {
+    playerId,
+    vpip: 0.5,      // 默认假设中等松紧
+    pfr: 0.2,       // 默认假设中等激进
+    aggression: 1.0,
+    handsPlayed: 0,
+    showdownStrengths: []
+  };
+}
+
 
 export type PlayerStatus = 'active' | 'folded' | 'allin' | 'eliminated';
 
@@ -320,6 +371,14 @@ export class PokerGameEngine {
   winningCards: Card[] = [];
   lastRaiseAmount: number = 0;
   bigBlind: number = 10;
+
+  // ============ 超级电脑模式属性 ============
+  /** 当前 AI 模式 */
+  aiMode: AIMode = 'normal';
+  /** 超级 AI 配置 */
+  superAIConfig: SuperAIConfig = { ...DEFAULT_SUPER_AI_CONFIG };
+  /** 对手建模档案 Map */
+  opponentProfiles: Map<number, OpponentProfile> = new Map();
 
   constructor(onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void) {
     this.onChange = onChange;
@@ -798,7 +857,8 @@ export class PokerGameEngine {
       stage: this.stage,
       logs: this.logs,
       winners: this.winners,
-      winningCards: this.winningCards
+      winningCards: this.winningCards,
+      aiMode: this.aiMode
     };
   }
 
@@ -1065,7 +1125,12 @@ export class PokerGameEngine {
 
   aiAction(player: Player) {
     try {
-      this._aiActionLogic(player);
+      // 根据 AI 模式选择不同的决策逻辑
+      if (this.aiMode === 'super') {
+        this._superAIActionLogic(player);
+      } else {
+        this._aiActionLogic(player);
+      }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       this.log(`AI Error (${player.name}): ${errorMessage}`, 'action');
@@ -1331,5 +1396,215 @@ export class PokerGameEngine {
       const text = lines[Math.floor(Math.random() * lines.length)];
       this.speak(player, text);
     }
+  }
+  // ============================================
+  // 超级电脑模式核心逻辑
+  // ============================================
+
+  setAIMode(mode: AIMode) {
+    this.aiMode = mode;
+    this.log(`切换 AI 模式为: ${mode === 'super' ? '超级电脑' : '普通模式'}`, 'normal');
+  }
+
+  /**
+   * 蒙特卡洛模拟核心方法
+   * 计算当前玩家在剩下发牌随机情况下的胜率
+   */
+  _calculateWinRateMonteCarlo(player: Player): number {
+    const startTs = Date.now();
+    const simulations = this.superAIConfig.monteCarloSims;
+    let wins = 0;
+    let ties = 0;
+
+    // 1. 确定已知牌
+    const knownCards = [...player.hand, ...this.communityCards];
+    // 用于快速查找已知牌的 Set (toString representation)
+    const knownCardSet = new Set(knownCards.map(c => c.toString()));
+
+    // 2. 确定需要模拟的对手数量 (Active players - 1)
+    const activeOpponentsCount = this.players.filter(p => !p.isEliminated && p.status !== 'folded' && p.id !== player.id).length;
+    // 如果没有对手了（理论上不会进入这里，因为那样就直接赢了），直接返回 1.0
+    if (activeOpponentsCount === 0) return 1.0;
+
+    // 预先生成一个完整的牌堆用于复制，避免反复创建对象
+    const baseDeckCards: Card[] = [];
+    for (const s of SUITS) {
+      for (const r of RANKS) {
+        const c = new Card(r, s);
+        if (!knownCardSet.has(c.toString())) {
+          baseDeckCards.push(c);
+        }
+      }
+    }
+
+    // 3. 开始模拟
+    for (let i = 0; i < simulations; i++) {
+      // 洗牌 (Fisher-Yates on a copy of baseDeckCards)
+      const deck = [...baseDeckCards];
+      let m = deck.length, t: Card, j: number;
+      while (m) {
+        j = Math.floor(Math.random() * m--);
+        t = deck[m];
+        deck[m] = deck[j];
+        deck[j] = t;
+      }
+
+      // 模拟公共牌补全
+      const simCommunity = [...this.communityCards];
+      while (simCommunity.length < 5) {
+        const c = deck.pop();
+        if (c) simCommunity.push(c);
+      }
+
+      // 模拟对手手牌
+      const simOpponentHands: Card[][] = [];
+      for (let k = 0; k < activeOpponentsCount; k++) {
+        const c1 = deck.pop();
+        const c2 = deck.pop();
+        if (c1 && c2) simOpponentHands.push([c1, c2]);
+      }
+
+      // 评估我的牌
+      const myFullHand = [...player.hand, ...simCommunity];
+      const myResult = evaluateHand(myFullHand);
+
+      // 评估对手的牌
+      let myRank = myResult.rank;
+      let myScore = myResult.score;
+      let won = true;
+      let tie = false;
+
+      for (const oppHand of simOpponentHands) {
+        const oppFullHand = [...oppHand, ...simCommunity];
+        const oppResult = evaluateHand(oppFullHand);
+
+        if (oppResult.rank > myRank) {
+          won = false; break;
+        } else if (oppResult.rank === myRank) {
+          if (oppResult.score > myScore) {
+            won = false; break;
+          } else if (Math.abs(oppResult.score - myScore) < 0.001) {
+            tie = true; // 只要有一个平手，且没有输给任何人，暂时算 Tie
+            // 注意：多人底池如果有一个人赢我，我就输了。如果所有人都没赢我，但有人平我，那就是平。
+          }
+        }
+      }
+
+      if (won) {
+        if (tie) ties++;
+        else wins++;
+      }
+    }
+
+    const duration = Date.now() - startTs;
+    // console.log(`[SuperAI] P${player.id} Sim in ${duration}ms: Win ${(wins/simulations).toFixed(2)}`);
+
+    // 简单计算胜率 = (赢次数 + 平局次数/2) / 总次数
+    return (wins + ties / 2) / simulations;
+  }
+
+  /**
+   * 超级电脑决策逻辑
+   */
+  _superAIActionLogic(player: Player) {
+    // 1. 计算精确胜率 (Win Rate/Equity)
+    const winRate = this._calculateWinRateMonteCarlo(player);
+    // player.handDescription = `WR: ${(winRate * 100).toFixed(1)}%`; // Debug Info - Hidden for production
+
+    // 2. 计算基本赔率 (Pot Odds)
+    const callAmt = this.highestBet - player.currentBet;
+    const potOdds = callAmt > 0 ? callAmt / (this.pot + callAmt) : 0;
+
+    // 3. 调整因子
+    const boldness = 1.0; // GTO 倾向于理性，减少随机情绪
+    const stage = this.stage;
+
+    // 4. 获取位置优势 (Position)
+    // 简化版：越晚行动越好。last to act (currentTurnIdx close to dealerIdx?)
+    // 暂不深度实现
+
+    let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
+    const rnd = Math.random();
+
+    // 基础策略矩阵
+    // 如果 胜率 >> 赔率，正期望值 -> 玩
+
+    // 极强牌: 慢打或者做大底池
+    if (winRate > 0.8) {
+      if (rnd < 0.3 && this.raisesInRound < 2) action = 'call'; // 30% 慢打
+      else if (rnd < 0.95) action = 'raise';
+      else action = 'allin';
+    }
+    // 强牌
+    else if (winRate > 0.6) {
+      action = 'raise';
+    }
+    // 中等牌 / 边缘牌
+    else if (winRate > potOdds + 0.1) {
+      // 有正期望，加注保护或跟注
+      if (rnd < 0.4) action = 'raise';
+      else action = 'call';
+    }
+    // 听牌/弱牌但赔率合适
+    else if (winRate > potOdds) {
+      action = 'call';
+    }
+    // 没赔率，但也许可以诈唬 (Bluff)
+    else {
+      // 诈唬频率：
+      // 简单模型：如果在后位且大家都过牌，尝试偷
+      // 或者手牌极烂（阻断牌概念太复杂暂略）
+
+      let bluffChance = 0.05; // 基础诈唬率 5%
+      if (this.raisesInRound === 0 && callAmt === 0) bluffChance = 0.2; // 没人加注时尝试偷
+
+      if (rnd < bluffChance) {
+        player.isBluffing = true;
+        action = 'raise';
+      } else {
+        if (callAmt === 0) action = 'call'; // Check
+        else action = 'fold';
+      }
+    }
+
+    // 修正与安全检查 (Sanity Check)
+    if (callAmt >= player.chips) {
+      if (action === 'raise' || action === 'call') action = 'allin';
+    }
+
+    // 如果加注但筹码不够
+    if (action === 'raise') {
+      const minRaise = Math.max(this.bigBlind, this.lastRaiseAmount);
+      if (player.chips <= callAmt + minRaise) {
+        action = 'allin'; // 只有一点点筹码了，直接推
+      }
+    }
+
+    // 执行动作
+    if (action === 'raise') {
+      // 计算合理加注额：底池的 0.5 ~ 1.0 倍
+      // 价值下注：下注 2/3 - 1.0 底池
+      let betSize = this.pot * 0.6;
+      if (winRate > 0.8) betSize = this.pot * 1.0; // 强牌下重注
+      if (player.isBluffing) betSize = this.pot * 0.75; // 诈唬也装作强牌
+
+      // 确保最小加注
+      const minRaise = Math.max(this.bigBlind, this.lastRaiseAmount);
+      if (betSize < minRaise) betSize = minRaise;
+
+      this.handleAction(player, 'raise', Math.floor(betSize));
+    } else {
+      this.handleAction(player, action);
+    }
+
+    // 发言逻辑复用
+    const speakChance = 0.3;
+    if (Math.random() < speakChance) {
+      let st: any = action === 'call' && callAmt === 0 ? 'check' : action;
+      if (player.status === 'folded') st = 'fold';
+      if (player.isBluffing) st = 'bluff_act';
+      this.speakRandom(player, st);
+    }
+
   }
 }
