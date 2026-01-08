@@ -14,6 +14,7 @@ import {
   getRankName as getRankNameHelper,
   getHandDetailedDescription as getHandDetailedDescriptionHelper
 } from './poker/display-helpers';
+import { OpponentProfileManager } from './poker/opponent-profiling';
 
 export {
   SUITS, RANKS, RANK_VALUE, BOT_NAMES, SPEECH_LINES,
@@ -25,17 +26,9 @@ export {
   type PlayerStatus, type Player, type GameLog
 };
 export { formatCardsHelper as formatCards, getRankNameHelper as getRankName, getHandDetailedDescriptionHelper as getHandDetailedDescription };
+export { OpponentProfileManager };
 
-function createDefaultProfile(playerId: number): OpponentProfile {
-  return {
-    playerId,
-    vpip: 0.5,
-    pfr: 0.2,
-    aggression: 1.0,
-    handsPlayed: 0,
-    showdownStrengths: []
-  };
-}
+
 
 export class PokerGameEngine {
   onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void;
@@ -67,8 +60,8 @@ export class PokerGameEngine {
   aiMode: AIMode = 'normal';
   /** 超级 AI 配置 */
   superAIConfig: SuperAIConfig = { ...DEFAULT_SUPER_AI_CONFIG };
-  /** 对手建模档案 Map */
-  opponentProfiles: Map<number, OpponentProfile> = new Map();
+  /** 对手建模档案管理器 */
+  opponentProfiles: OpponentProfileManager = new OpponentProfileManager();
 
   // ============ 对局倒数功能属性 ============
   /** 局数上限 (null = 无限制) */
@@ -1134,10 +1127,7 @@ export class PokerGameEngine {
    * 获取或创建玩家的对手档案
    */
   _getOrCreateProfile(playerId: number): OpponentProfile {
-    if (!this.opponentProfiles.has(playerId)) {
-      this.opponentProfiles.set(playerId, createDefaultProfile(playerId));
-    }
-    return this.opponentProfiles.get(playerId)!;
+    return this.opponentProfiles.getOrCreateProfile(playerId);
   }
 
   /**
@@ -1145,30 +1135,7 @@ export class PokerGameEngine {
    * 在每次玩家行动后调用
    */
   _updateOpponentProfile(player: Player, action: 'fold' | 'call' | 'raise' | 'allin') {
-    const profile = this._getOrCreateProfile(player.id);
-    const n = profile.handsPlayed;
-
-    // 1. 更新 VPIP (Voluntarily Put In Pot) - 入池率
-    // 在翻前，如果玩家主动投入筹码 (call/raise/allin 而非 fold)
-    if (this.stage === 'preflop') {
-      const didVPIP = action !== 'fold';
-      // 增量平均: newAvg = (oldAvg * n + newValue) / (n + 1)
-      profile.vpip = (profile.vpip * n + (didVPIP ? 1 : 0)) / (n + 1);
-
-      // 2. 更新 PFR (Pre-Flop Raise) - 翻前加注率
-      const didPFR = action === 'raise' || action === 'allin';
-      profile.pfr = (profile.pfr * n + (didPFR ? 1 : 0)) / (n + 1);
-    }
-
-    // 3. 更新激进度 (Aggression Factor)
-    // AF = (Raise + Bet) / Call，这里简化为 raise 比例
-    if (action === 'raise' || action === 'allin') {
-      profile.aggression = Math.min(2.0, profile.aggression + 0.1);
-    } else if (action === 'call') {
-      profile.aggression = Math.max(0.3, profile.aggression - 0.05);
-    }
-
-    profile.handsPlayed = n + 1;
+    this.opponentProfiles.updateProfile(player, action, this.stage === 'preflop');
   }
 
   /**
@@ -1176,48 +1143,14 @@ export class PokerGameEngine {
    * 在摊牌后调用，用于建模对手的手牌范围
    */
   _updateShowdownStrength(player: Player, handRank: HandRankType) {
-    const profile = this._getOrCreateProfile(player.id);
-    profile.showdownStrengths.push(handRank);
-    // 只保留最近 20 次摊牌记录
-    if (profile.showdownStrengths.length > 20) {
-      profile.showdownStrengths.shift();
-    }
+    this.opponentProfiles.updateShowdownStrength(player, handRank);
   }
 
   /**
    * 获取活跃对手的平均统计数据
    */
   _getAverageOpponentStats(): { avgVpip: number; avgPfr: number; avgAggression: number } {
-    const activeOpponents = this.players.filter(
-      p => !p.isEliminated && p.status !== 'folded' && !p.isHuman
-    );
-
-    if (activeOpponents.length === 0) {
-      return { avgVpip: 0.5, avgPfr: 0.2, avgAggression: 1.0 };
-    }
-
-    let totalVpip = 0, totalPfr = 0, totalAgg = 0;
-    let count = 0;
-
-    for (const opp of activeOpponents) {
-      const profile = this.opponentProfiles.get(opp.id);
-      if (profile && profile.handsPlayed > 0) {
-        totalVpip += profile.vpip;
-        totalPfr += profile.pfr;
-        totalAgg += profile.aggression;
-        count++;
-      }
-    }
-
-    if (count === 0) {
-      return { avgVpip: 0.5, avgPfr: 0.2, avgAggression: 1.0 };
-    }
-
-    return {
-      avgVpip: totalVpip / count,
-      avgPfr: totalPfr / count,
-      avgAggression: totalAgg / count
-    };
+    return this.opponentProfiles.getAverageStats(this.players);
   }
 
   /**
