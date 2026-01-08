@@ -246,6 +246,50 @@ export class ScenarioTester {
             throw new Error(`WinRate calculation abnormal for AA: ${winRate}`);
         }
     }
+
+    /**
+     * Test startNewSession logic
+     */
+    async testSessionReset() {
+        this.log("Testing startNewSession chip reset...");
+        // Reset to a clean state first
+        this.reset();
+
+        // 1. Manually corrupt state to simulate end of a weird session
+        this.engine.players.forEach((p, i) => {
+            p.chips = 9999 + i;
+            p.status = 'eliminated';
+            p.isEliminated = true;
+        });
+
+        // 2. Start new session
+        this.engine.startNewSession();
+
+        // 3. Verify
+        let allOk = true;
+        this.engine.players.forEach(p => {
+            // Because startNewSession automatically starts the next round and posts blinds,
+            // we must check if (chips + currentBet) equals the initial amount.
+            if (p.chips + p.currentBet !== this.engine.initialChips) {
+                this.log(`FAIL: Player ${p.name} chips=${p.chips}, bet=${p.currentBet}, total=${p.chips + p.currentBet}, expected ${this.engine.initialChips}`);
+                allOk = false;
+            }
+            if (p.isEliminated) {
+                this.log(`FAIL: Player ${p.name} is still Eliminated`);
+                allOk = false;
+            }
+            if (p.status !== 'active') {
+                this.log(`FAIL: Player ${p.name} status is ${p.status}`);
+                allOk = false;
+            }
+        });
+
+        if (allOk) {
+            this.log("Passed: Session reset confirmed (All players reset to initialChips).");
+        } else {
+            throw new Error("Failed: Players not reset correctly after startNewSession.");
+        }
+    }
 }
 
 export async function runDebugScenarios(): Promise<string[]> {
@@ -479,6 +523,9 @@ export async function runDebugScenarios(): Promise<string[]> {
 
         // --- 14. Super AI Tests ---
         await tester.runSuperAITests();
+
+        // --- 15. Session Reset Test ---
+        await tester.testSessionReset();
 
         tester.log("All Scenarios Completed.");
     } catch (e: unknown) {

@@ -818,12 +818,14 @@ export class PokerGameEngine {
 
     // 记录当前筹码作为新的初始值
     this.players.forEach(p => {
-      // 如果玩家被淘汰，给予初始筹码复活
-      if (p.isEliminated) {
-        p.chips = this.initialChips;
-        p.isEliminated = false;
-        p.status = 'active';
-      }
+      // 重置所有玩家的筹码为初始值
+      p.chips = this.initialChips;
+      p.isEliminated = false;
+      p.status = 'active';
+      // 重置其他状态
+      p.currentBet = 0;
+      p.totalHandBet = 0;
+      p.hand = [];
     });
 
     this.notify();
