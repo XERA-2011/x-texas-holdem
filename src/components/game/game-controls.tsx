@@ -33,9 +33,9 @@ export function GameControls({
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-neutral-900/90 border-t border-zinc-200 dark:border-white/10 backdrop-blur md:static md:bg-transparent md:border-none md:p-0 flex justify-center z-50">
           <button
             onClick={onReset}
-            className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white font-bold h-14 flex items-center justify-center px-6 rounded-lg shadow-lg active:scale-95 transition-all text-lg md:text-xl"
+            className="w-full max-w-md bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-bold h-14 flex items-center justify-center px-6 rounded-lg shadow-lg active:scale-95 transition-all text-lg md:text-xl"
           >
-            游戏结束！重新开始 🔄
+            游戏结束！重新开始
           </button>
         </div>
       );
