@@ -1,6 +1,14 @@
 import { Card } from './card';
 import { HandResult, HandRankType } from './types';
 
+/**
+ * 评估手牌强度
+ * 
+ * 从 7 张牌 (2张手牌 + 5张公共牌) 中找出最佳的 5 张牌组合。
+ * 返回该组合的牌型等级 (Rank) 和用于比较大小的分数 (Score)。
+ * 
+ * @param cards 待评估的卡牌数组 (通常为 2~7 张)
+ */
 export function evaluateHand(cards: Card[]): HandResult {
     const sorted = [...cards].sort((a, b) => b.value - a.value);
 

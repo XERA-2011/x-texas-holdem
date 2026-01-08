@@ -16,7 +16,6 @@ import {
   getHandDetailedDescription as getHandDetailedDescriptionHelper
 } from './poker/display-helpers';
 import { OpponentProfileManager } from './poker/opponent-profiling';
-// 新增 AI 模块导入
 import { getHandStrength, makeNormalAIDecision, getRandomSpeech, type AIContext } from './poker/ai-strategy';
 import { makeSuperAIDecision, type SuperAIContext } from './poker/ai-super';
 import { getPositionAdvantage, getBoardTexture } from './poker/board-analysis';
@@ -64,7 +63,6 @@ export class PokerGameEngine {
   lastRaiseAmount: number = 0;
   bigBlind: number = GAME_RULES.BIG_BLIND;
 
-  // ============ 超级电脑模式属性 ============
   /** 当前 AI 模式 */
   aiMode: AIMode = 'normal';
   /** 超级 AI 配置 */
@@ -72,7 +70,6 @@ export class PokerGameEngine {
   /** 对手建模档案管理器 */
   opponentProfiles: OpponentProfileManager = new OpponentProfileManager();
 
-  // ============ 对局倒数功能属性 ============
   /** 局数上限 (null = 无限制) */
   roundLimit: number | null = null;
   /** 当前第几局 (从1开始) */
@@ -134,7 +131,6 @@ export class PokerGameEngine {
     this.winningCards = [];
 
     this.notify();
-    // Do NOT auto start. Let the UI/Control invoke startNextRound.
     // this.startNextRound(); 
   }
 
@@ -220,13 +216,7 @@ export class PokerGameEngine {
   }
 
   handleFoldWin(winner: Player) {
-    // 1. 退还 winner 没有被匹配的下注 (Uncalled Bet)
-    // 计算其实际被匹配的金额（即第二高下注额）
-    // 注意：这里需要遍历所有玩家本轮（或本局？）的下注来决定。
-    // 为简化：如果获胜者这轮下注了 X，而其他人这轮最多下注了 Y (Y < X)，那么 (X - Y) 退回。
-    // 但对于复杂的边池，Fold Win 通常意味着他拿走底池中所有钱。
-    // 唯一例外：如果他是因为 All-in 吓跑所有人，他这轮的 Action 其实是 "跟注" 或 "加注"。
-    // 正确做法：将 winner.currentBet 与第二高 currentBet 比较。
+    // 退还未被跟注的筹码 (Uncalled Bet)
 
     const others = this.players.filter(p => p.id !== winner.id);
     const maxOpponentBet = Math.max(0, ...others.map(p => p.currentBet));
@@ -238,7 +228,6 @@ export class PokerGameEngine {
       this.pot -= returnAmount;
       // 退还
       winner.chips += returnAmount;
-      // 修正 winner 的数据以反映实际投入 (用于日志或逻辑？虽然现在游戏结束了)
       winner.currentBet = maxOpponentBet;
       winner.totalHandBet -= returnAmount;
     }
@@ -249,7 +238,6 @@ export class PokerGameEngine {
     this.pot = 0;
 
     this.winners = [winner.id];
-    // 清空 winning cards 因为没有摊牌
     this.winningCards = [];
 
     if (returnAmount > 0) {
@@ -267,7 +255,7 @@ export class PokerGameEngine {
     const activePlayers = this.players.filter(p => !p.isEliminated && p.status !== 'folded');
     const foldedPlayers = this.players.filter(p => !p.isEliminated && p.status === 'folded');
 
-    // 如果只剩一名玩家，直接获胜（理论上在 prepareBettingRound 已处理，这也是防御性代码）
+    // 如果只剩一名玩家，直接获胜
     if (activePlayers.length === 1) {
       this.handleFoldWin(activePlayers[0]);
       return;
@@ -279,7 +267,7 @@ export class PokerGameEngine {
       result: evaluateHand([...p.hand, ...this.communityCards])
     }));
 
-    // 2. 显示牌型描述 (日志)
+    // 2. 显示牌型描述
     results.forEach(({ player, result }) => {
       let info = this.getHandDetailedDescription(result);
       const isPlayingBoard = result.bestHand.every(wc =>
@@ -290,11 +278,7 @@ export class PokerGameEngine {
       this.log(`${player.name} 亮牌: ${this.formatCards(player.hand)} (${info})`, 'showdown');
     });
 
-    // --- 3. 边池与分池分配逻辑 (Side Pot Distribution) ---
-    // 核心思想：
-    // 将所有玩家（无论是否弃牌）的有效下注 (totalHandBet) 收集起来。
-    // 按下注额从小到大分层 (Levels)。每一层构成一个“边池”。
-    // 只有在该层有下注 且 没有弃牌的玩家，才有资格争夺该层的奖金。
+    // 3. 边池与分池分配逻辑
 
     try {
       const allContributors = [...activePlayers, ...foldedPlayers];
@@ -420,62 +404,7 @@ export class PokerGameEngine {
     this.finishTurn();
   }
 
-  // Debug / AI Testing Mechanism
-  // 生成并结算随机All-in局 (Synchronous Simulation)
-  simulateRandomHand() {
-    // 1. Reset lightweight state
-    const deck = new Deck();
-    this.communityCards = [deck.deal()!, deck.deal()!, deck.deal()!, deck.deal()!, deck.deal()!];
-    this.pot = 0;
-    this.logs = [];
-    this.winners = [];
-    this.winningCards = [];
-    this.players = [];
 
-    // 2. Create random players (2-9)
-    const numPlayers = 2 + Math.floor(Math.random() * 8);
-    for (let i = 0; i < numPlayers; i++) {
-      // Random stack sizes for side-pot complexity
-      const startingChips = 100 + Math.floor(Math.random() * 1900);
-
-      this.players.push({
-        id: i,
-        name: `Bot${i}`,
-        persona: 'bot',
-        isHuman: false,
-        chips: 0, // Assuming All-in
-        hand: [deck.deal()!, deck.deal()!],
-        status: 'active',
-        currentBet: 0,
-        totalHandBet: startingChips, // They bet everything
-        hasActed: true,
-        isEliminated: false
-      });
-      this.pot += startingChips;
-    }
-
-    // 3. Invoke Showdown directly
-    // showdown() uses logs, players, pot.
-    this.showdown();
-
-    // 4. Return summary for AI analysis
-    return {
-      id: Math.random().toString(36).substr(2, 5),
-      board: this.formatCards(this.communityCards),
-      potTotal: this.players.reduce((acc, p) => acc + p.totalHandBet, 0),
-      payoutTotal: this.players.reduce((acc, p) => acc + p.chips, 0),
-      players: this.players.map(p => ({
-        name: p.name,
-        hand: this.formatCards(p.hand),
-        bet: p.totalHandBet,
-        win: p.chips, // Chips they have now (which they won, since they started at 0 after all-in)
-        desc: p.handDescription,
-        bestHand: p.handDescription // Simplification
-      })),
-      logs: this.logs.map(l => l.message),
-      valid: Math.abs(this.players.reduce((acc, p) => acc + p.chips, 0) - this.players.reduce((acc, p) => acc + p.totalHandBet, 0)) < 1
-    };
-  }
 
   getSnapshot() {
     return {
@@ -557,7 +486,6 @@ export class PokerGameEngine {
       return;
     }
 
-    // 全压 / 自动运行检查
     this.actorsLeft = this.players.filter(p => p.status === 'active').length;
     if (this.actorsLeft <= 1 && !this.isFastForwarding) {
       this.runRemainingStages();
@@ -618,20 +546,10 @@ export class PokerGameEngine {
     const active = this.players.filter(p => !p.isEliminated && p.status !== 'folded');
     if (active.length === 0) return true;
     const amount = this.highestBet;
-    // 所有活跃玩家必须下注等于 highestBet 或全压
-    // 并且每个人都必须有机会行动？
-    // 简化：检查所有活跃玩家是否匹配最高下注。
-    // 所有活跃玩家必须下注等于 highestBet 或全压
-    // 并且每个人都必须在本轮行动。
     return active.every(p => {
       if (p.status === 'allin') return true;
       return p.currentBet === amount && p.hasActed;
     });
-    // actorsLeft 逻辑比较棘手。我们要不只是检查每个人是否匹配下注并且我们已经转了一圈？
-    // 我们将依赖一个简单的检查：
-    // 如果每个人都匹配下注，并且我们不是在回合中间...
-    // 理想情况下我们追踪 'playersYetToAct'。
-    // 对于这个 MV 逻辑，让我们更新 `advanceTurn` 来检查这个。
   }
 
   nextStage() {
@@ -685,7 +603,6 @@ export class PokerGameEngine {
     }
   }
 
-  // 在这里完成 handleAction 逻辑更安全：
   finishTurn() {
     // 检查是否只剩一名玩家 (其他人都弃牌了)
     const active = this.players.filter(p => !p.isEliminated && p.status !== 'folded');
@@ -701,7 +618,6 @@ export class PokerGameEngine {
       this.processTurn();
     }
   }
-  // 重新实现 aiAction 并添加发言助手
 
   speak(player: Player, text: string) {
     player.currentSpeech = text;

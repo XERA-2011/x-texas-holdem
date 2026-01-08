@@ -1,6 +1,10 @@
 import type { Rank, Suit } from './base-types';
 import { RANK_VALUE, SUITS, RANKS } from './constants';
 
+/**
+ * 扑克牌实体类
+ * 代表一张牌，包含点数 (Rank) 和花色 (Suit)
+ */
 export class Card {
     rank: Rank;
     suit: Suit;
@@ -22,6 +26,10 @@ export class Card {
         return `${this.suit}${displayRank}`;
     }
 
+    /**
+     * 从字符串解析卡牌
+     * @param str 例如 "Ah" (红桃A), "Td" (方块10)
+     */
     static fromString(str: string): Card {
         // str like "Ah", "Td", "2s", "Tc"
         const suitChar = str.slice(-1).toLowerCase();
@@ -44,6 +52,10 @@ export class Card {
     }
 }
 
+/**
+ * 扑克牌堆类
+ * 管理一副牌 (52张)，提供洗牌和发牌功能
+ */
 export class Deck {
     cards: Card[];
 

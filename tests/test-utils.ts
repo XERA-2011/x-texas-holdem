@@ -1,5 +1,5 @@
 
-import { PokerGameEngine, Card } from './poker-engine';
+import { PokerGameEngine, Card } from '../src/lib/poker-engine';
 
 export class ScenarioTester {
     engine: PokerGameEngine;
@@ -604,31 +604,4 @@ export async function runDebugScenarios(): Promise<string[]> {
     return tester.logs;
 }
 
-/**
- * AI 专用批量测试生成器 - 生成指定数量的随机对局并验证结果
- */
-export function generateMatchReports(count: number = 10, mode: 'normal' | 'super' = 'normal'): { id: string; valid: boolean;[key: string]: unknown }[] {
-    const engine = new PokerGameEngine(() => { });
-    engine.setAIMode(mode);
-    // Super mode simulation is slow, reduce Monte Carlo sims for batch reporting if needed
-    if (mode === 'super') {
-        engine.superAIConfig.monteCarloSims = 200; // Faster validation
-    }
 
-    const reports = [];
-
-    console.log(`Generating ${count} random matches (${mode} mode) for validation...`);
-
-    for (let i = 0; i < count; i++) {
-        const result = engine.simulateRandomHand();
-
-        // 自检：如果资金不平衡，标记为失败
-        if (!result.valid) {
-            console.error(`MATCH MATCH FAILED VALIDATION: ${result.id}`);
-        }
-
-        reports.push(result);
-    }
-
-    return reports;
-}

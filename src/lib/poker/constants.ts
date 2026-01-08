@@ -1,7 +1,14 @@
+/**
+ * 德州扑克基础常量定义
+ * 包含花色、点数、AI 话术、预翻牌胜率表等
+ */
 import { Suit, Rank, SuperAIConfig, GameConfig } from './base-types';
 
+// 花色与点数定义
 export const SUITS: Suit[] = ['♠', '♥', '♣', '♦'];
 export const RANKS: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+
+// 点数对应数值 (2=2, ..., T=10, ..., A=14)
 export const RANK_VALUE: Record<Rank, number> = {
     '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
 };
@@ -68,6 +75,11 @@ export const DEFAULT_SUPER_AI_CONFIG: SuperAIConfig = {
     thinkingDelay: 1500
 };
 
+/**
+ * 预翻牌手牌强度表 (GTO / Equity Based)
+ * 数值范围 0.0 ~ 1.0，代表该起手牌在大部分情况下的胜率期望
+ * 's' = Suited (同花), 'o' = Offsuit (杂色)
+ */
 export const PREFLOP_HAND_STRENGTH: Record<string, number> = {
     // === 对子 (Pocket Pairs) ===
     'AA': 0.85, 'KK': 0.82, 'QQ': 0.80, 'JJ': 0.77, 'TT': 0.75,

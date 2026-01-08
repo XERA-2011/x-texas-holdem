@@ -38,7 +38,7 @@ export function getHandStrength(playerHand: Card[], communityCards: Card[]): num
 
     const fullHand = [...hole, ...communityCards];
 
-    // --- 翻牌前启发式 (Preflop) ---
+    // 翻牌前启发式
     if (communityCards.length === 0) {
         const v1 = hole[0].value;
         const v2 = hole[1].value;
@@ -61,7 +61,7 @@ export function getHandStrength(playerHand: Card[], communityCards: Card[]): num
         return Math.min(Math.max(score / 45, 0.1), 1.0);
     }
 
-    // --- 翻牌后 (Postflop) ---
+    // 翻牌后
     const res = evaluateHand(fullHand);
     let strength = 0;
 
@@ -150,7 +150,7 @@ export function makeNormalAIDecision(player: Player, ctx: AIContext): AIDecision
         forceAllIn = true;
     }
 
-    // --- 决策核心 ---
+    // 决策核心
     let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
     let isBluffing = false;
     const rnd = Math.random();

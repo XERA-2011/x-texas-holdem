@@ -1,7 +1,7 @@
 
-import { Card } from './card';
-import { evaluateHand } from './evaluator';
-import { HandRankType } from './types';
+import { Card } from '../src/lib/poker/card';
+import { evaluateHand } from '../src/lib/poker/evaluator';
+import { HandRankType } from '../src/lib/poker/types';
 
 // Simple Assertion Helper
 function assert(condition: boolean, message: string) {

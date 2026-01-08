@@ -8,10 +8,10 @@
     "build:aliyun": "cross-env NEXT_PUBLIC_BASE_PATH=/texas-holdem next build",
     "start": "next start",
     "lint": "eslint",
-    "test:simulation": "npx tsx src/lib/run-simulation.ts",
-    "test:normal": "npx tsx src/lib/run-simulation.ts --mode=normal",
-    "test:super": "npx tsx src/lib/run-simulation.ts --mode=super",
-    "test:unit": "npx tsx src/lib/poker/run-unit-tests.ts"
+    "test:simulation": "npx tsx tests/run-simulation.ts",
+    "test:normal": "npx tsx tests/run-simulation.ts --mode=normal",
+    "test:super": "npx tsx tests/run-simulation.ts --mode=super",
+    "test:unit": "npx tsx tests/run-unit-tests.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

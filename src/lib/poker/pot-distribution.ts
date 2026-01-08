@@ -8,9 +8,6 @@
 import type { Player, HandResult } from './types';
 import type { Card } from './card';
 
-// ============================================
-// 类型定义
-// ============================================
 
 /** 玩家下注记录 */
 export interface PlayerBet {
@@ -41,9 +38,6 @@ export interface PotDistributionResult {
     winningCards: Card[];
 }
 
-// ============================================
-// 核心算法
-// ============================================
 
 /**
  * 计算边池分配
