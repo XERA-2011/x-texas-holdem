@@ -6,6 +6,7 @@ import { GameTable } from '@/components/game/game-table';
 import { GameControls } from '@/components/game/game-controls';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { GithubIcon } from '@/components/icons/github-icon';
+import { InfinityIcon } from '@/components/icons/infinity-icon';
 import { Bot, Brain, Trophy } from 'lucide-react';
 
 
@@ -77,14 +78,14 @@ export default function TexasHoldemPage() {
             tabIndex={0}
           >
             {/* Rotating Icon: ♾️ rotates 90deg to become 8-like */}
-            <span
-              className="text-4xl font-black transition-transform duration-500 ease-in-out inline-block h-10 w-10 flex items-center justify-center"
+            <div
+              className="transition-transform duration-500 ease-in-out flex items-center justify-center h-12 w-12 text-zinc-900 dark:text-zinc-100"
               style={{
                 transform: roundLimitEnabled ? 'rotate(90deg)' : 'rotate(0deg)'
               }}
             >
-              ♾️
-            </span>
+              <InfinityIcon className="w-10 h-10" />
+            </div>
             <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
               {roundLimitEnabled ? '8 局制' : '无限制'}
             </span>
