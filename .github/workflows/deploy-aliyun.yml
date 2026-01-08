@@ -1,0 +1,64 @@
+name: Deploy to Aliyun
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'next.config.ts'
+      - '.github/workflows/deploy-aliyun.yml'
+  workflow_dispatch:
+
+env:
+  CI: true
+  TZ: Asia/Shanghai
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10.26.1"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for Aliyun
+        run: pnpm run build:aliyun
+
+      - name: Deploy to server
+        uses: easingthemes/ssh-deploy@v5.1.1
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.ALIYUN_HOST }}
+          REMOTE_USER: ${{ secrets.ALIYUN_USER }}
+          SOURCE: 'out/'
+          # Target matches basePath: /texas-holdem -> /opt/xera/html/texas-holdem
+          TARGET: '/opt/xera/html/texas-holdem/' 
+          ARGS: '-avz --delete'
+
+      - name: Reload Nginx
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ALIYUN_HOST }}
+          username: ${{ secrets.ALIYUN_USER }}
+          key: ${{ secrets.ALIYUN_SSH_KEY }}
+          script: |
+            # Reload Nginx to ensure caches are cleared if necessary
+            # Assuming docker container name is xera-nginx as per reference
+            docker exec xera-nginx nginx -s reload || true
