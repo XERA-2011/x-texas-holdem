@@ -1,5 +1,6 @@
 import { Player as PlayerType, Card as CardType } from '@/lib/poker-engine';
 import { Card } from './card';
+import { Loader2 } from 'lucide-react';
 
 interface PlayerProps {
   player: PlayerType;
@@ -66,15 +67,6 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
           </div>
         )}
 
-        {/* Thinking Indicator */}
-        {isActiveTurn && !isWinner && !player.isHuman && player.status === 'active' && (
-          <div className="absolute top-[-24px] sm:top-[-28px] left-1/2 -translate-x-1/2 z-50 animate-pulse">
-            <span className="text-[9px] sm:text-[10px] bg-white/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 shadow-sm whitespace-nowrap text-zinc-600 dark:text-zinc-300 font-medium flex items-center gap-1">
-              <span className="animate-spin inline-block">⏳</span> 思考中...
-            </span>
-          </div>
-        )}
-
 
         {/* Hand Description Badge (Showdown) */}
         {player.handDescription && (
@@ -101,7 +93,7 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
 
 
       {/* Cards */}
-      <div className={`flex gap-0.5 sm:gap-1 ${player.status === 'folded' ? 'opacity-40 grayscale' : ''}`}>
+      <div className={`relative flex gap-0.5 sm:gap-1 ${player.status === 'folded' ? 'opacity-40 grayscale' : ''}`}>
         {player.hand.length > 0 ? (
           player.hand.map((card, idx) => {
             const isWinningCard = winningCards?.some(wc => wc.rank === card.rank && wc.suit === card.suit);
@@ -110,6 +102,16 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
         ) : (
           // Placeholder empty layout if no cards dealt yet
           <div className="h-11 sm:h-14 w-0"></div>
+        )}
+
+        {/* Thinking Indicator Overlay */}
+        {isActiveTurn && !isWinner && !player.isHuman && player.status === 'active' && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center">
+            <div className="bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-lg border border-white/20 backdrop-blur-sm animate-in fade-in duration-200 whitespace-nowrap">
+              <Loader2 className="w-2.5 h-2.5 animate-spin text-white" />
+              <span>思考中</span>
+            </div>
+          </div>
         )}
       </div>
     </div>
