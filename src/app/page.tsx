@@ -118,11 +118,11 @@ export default function TexasHoldemPage() {
           {/* Title */}
           <div className="text-center space-y-2">
             <div className="flex items-center justify-center gap-3">
-              <Trophy className="w-8 h-8 text-zinc-900 dark:text-zinc-100" />
+              <span className="text-3xl">🏆</span>
               <h1 className="text-3xl font-black text-zinc-900 dark:text-zinc-100">
                 对局结束
               </h1>
-              <Trophy className="w-8 h-8 text-zinc-900 dark:text-zinc-100" />
+              <span className="text-3xl">🏆</span>
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {gameState.roundLimit} 局已完成
