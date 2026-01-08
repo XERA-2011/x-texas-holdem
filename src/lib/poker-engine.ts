@@ -20,6 +20,7 @@ import { getHandStrength, makeNormalAIDecision, getRandomSpeech, type AIContext 
 import { makeSuperAIDecision, type SuperAIContext } from './poker/ai-super';
 import { getPositionAdvantage, getBoardTexture } from './poker/board-analysis';
 import { calculateWinRateMonteCarlo, getPreflopStrength, getHandKey } from './poker/monte-carlo';
+import { calculatePotDistribution } from './poker/pot-distribution';
 
 
 export {
@@ -296,101 +297,16 @@ export class PokerGameEngine {
 
     try {
       const allContributors = [...activePlayers, ...foldedPlayers];
-      // 提取所有人的下注额
-      const bets = allContributors.map(p => ({ id: p.id, amount: p.totalHandBet }));
 
-      // 找出所有唯一的非零下注额，从小到大排序
-      const betLevels = Array.from(new Set(bets.map(b => b.amount).filter(a => a > 0))).sort((a, b) => a - b);
+      const distributionResult = calculatePotDistribution(
+        activePlayers,
+        foldedPlayers,
+        results
+      );
 
-      let processedBet = 0;
-
-      // 临时记录每个玩家赢得的总金额，用于最后日志汇总
-      const playerWins: Record<number, { winnings: number, refund: number, types: string[] }> = {};
-
-      this.winners = [];
-      this.winningCards = []; // 主池赢家的牌
-
-      // 遍历每一级下注 (Side Pot Slices)
-      for (const level of betLevels) {
-        const sliceAmount = level - processedBet;
-        if (sliceAmount <= 0) continue;
-
-        // 1) 计算当前层底池大小
-        // 所有下注额 >= level 的人，都贡献了 sliceAmount
-        const contributors = bets.filter(b => b.amount >= level);
-        const potSlice = contributors.length * sliceAmount;
-
-        // 2) 找出有资格赢这个池子的人
-        // 资格：Active (未弃牌) 且 下注额 >= level
-        const eligiblePlayers = activePlayers.filter(p => p.totalHandBet >= level);
-
-        if (eligiblePlayers.length === 0) {
-          // 异常情况：此层无人有资格赢 (例如大家都弃牌了？不可能，这里是showdown)
-        } else if (eligiblePlayers.length === 1) {
-          // 3) 退款情况 (Run-off / Refund)
-          // 只有1个人达到了这个注额深度（通常是最大的那个 All-in 者）。
-          const winner = eligiblePlayers[0];
-
-          if (!playerWins[winner.id]) playerWins[winner.id] = { winnings: 0, refund: 0, types: [] };
-
-          // 区分是 “退款” 还是 “赢取弃牌死钱”
-          if (contributors.length === 1) {
-            // 只有他自己下注到这 -> 纯退款
-            playerWins[winner.id].refund += potSlice;
-            playerWins[winner.id].types.push('退回');
-          } else {
-            // 有人跟了但弃牌了 -> 赢死钱
-            playerWins[winner.id].winnings += potSlice;
-            playerWins[winner.id].types.push('边池');
-            if (!this.winners.includes(winner.id)) this.winners.push(winner.id);
-          }
-
-        } else {
-          // 4) 竞争情况 (Showdown for this slice)
-          // 在 eligiblePlayers 中比牌
-          const eligibleResults = results.filter(r => r.player.totalHandBet >= level);
-
-          // 排序
-          eligibleResults.sort((a, b) => {
-            if (a.result.rank !== b.result.rank) return b.result.rank - a.result.rank;
-            return b.result.score - a.result.score;
-          });
-
-          const bestRes = eligibleResults[0];
-          const winnersForSlice = eligibleResults.filter(r =>
-            r.result.rank === bestRes.result.rank &&
-            Math.abs(r.result.score - bestRes.result.score) < 0.001
-          );
-
-          // 如果是第一层（主池），记录 Winning Cards
-          if (processedBet === 0) {
-            this.winningCards = bestRes.result.winningCards;
-          }
-
-          // 分钱
-          const share = Math.floor(potSlice / winnersForSlice.length);
-          const remainder = potSlice % winnersForSlice.length;
-
-          winnersForSlice.forEach((r, idx) => {
-            const w = r.player;
-            const winAmt = share + (idx < remainder ? 1 : 0); // 分配零头
-
-            if (!playerWins[w.id]) playerWins[w.id] = { winnings: 0, refund: 0, types: [] };
-            playerWins[w.id].winnings += winAmt;
-
-            // 标记类型
-            const isMainPot = eligiblePlayers.length === activePlayers.length;
-            const type = isMainPot ? '主池' : '边池';
-            if (!playerWins[w.id].types.includes(type)) {
-              playerWins[w.id].types.push(type);
-            }
-
-            if (!this.winners.includes(w.id)) this.winners.push(w.id);
-          });
-        }
-
-        processedBet = level;
-      }
+      this.winners = distributionResult.winners;
+      this.winningCards = distributionResult.winningCards;
+      const { playerWins } = distributionResult;
 
       // 4. 应用结果并产生日志
       Object.keys(playerWins).forEach(pidStr => {
