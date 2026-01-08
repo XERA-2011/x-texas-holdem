@@ -23,6 +23,7 @@ export interface SuperAIContext {
     dealerIdx: number;
     monteCarloSims: number;
     opponentProfiles: OpponentProfileManager;
+    preflopRaiserId?: number;  // 翻前加注者 ID，用于 C-Bet 逻辑
 }
 
 /** 超级 AI 决策结果 */
@@ -71,6 +72,45 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     const isLooseTable = oppStats.avgVpip > 0.55;
     const isTightTable = oppStats.avgVpip < 0.35;
     const isAggressiveTable = oppStats.avgAggression > 1.3;
+
+    // ============ 多人锅策略 (Multiway Pot) ============
+    // 多人锅时 bluff 成功率大幅降低，需要收紧范围
+    const isMultiwayPot = activeOpponentsCount >= 2;
+    const multiwayBluffPenalty = isMultiwayPot ? 0.5 : 1.0;  // bluff 频率减半
+    const multiwayValueThreshold = isMultiwayPot ? 0.05 : 0;  // value bet 阈值提高
+
+    // ============ 个体对手档案利用 ============
+    // 寻找最后一个主动下注/加注的对手，针对其特点调整策略
+    let targetOpponentProfile = null;
+    let isTargetLoose = false;
+    let isTargetPassive = false;
+    let isTargetTight = false;
+
+    // 如果面对加注，尝试找到最有可能的加注者
+    if (ctx.raisesInRound > 0) {
+        // 简单策略：取第一个非弃牌的对手作为目标
+        const potentialRaiser = activeOpponents.find(p => p.currentBet >= ctx.highestBet);
+        if (potentialRaiser) {
+            targetOpponentProfile = ctx.opponentProfiles.getProfile(potentialRaiser.id);
+            if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
+                isTargetLoose = targetOpponentProfile.vpip > 0.55;
+                isTargetPassive = targetOpponentProfile.aggression < 0.7;
+                isTargetTight = targetOpponentProfile.vpip < 0.30;
+            }
+        }
+    }
+
+    // ============ C-Bet (连续下注) 逻辑 ============
+    // 如果我们是翻前加注者，在翻牌有 C-Bet 优势
+    const isPreflopRaiser = ctx.preflopRaiserId === player.id;
+    const isFlop = ctx.stage === 'flop';
+    const shouldConsiderCBet = isPreflopRaiser && isFlop && callAmt === 0;
+
+    // C-Bet 频率根据牌面材质调整：干燥牌面更高频
+    let cBetChance = 0.65;  // 基础 C-Bet 频率
+    if (boardTexture > 0.6) cBetChance -= 0.20;  // 湿润牌面降低
+    if (boardTexture < 0.3) cBetChance += 0.15;  // 干燥牌面提高
+    if (isMultiwayPot) cBetChance -= 0.25;  // 多人锅大幅降低
 
     // ============ SPR (Stack-to-Pot Ratio) 感知 ============
     // SPR < 4: 浅筹码，倾向 All-in or Fold
@@ -129,10 +169,13 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
     // ============ 面对3-Bet的策略 ============
     if (isFacing3Bet && isPreflop) {
+        // 利用个体对手档案：面对松散玩家的 3-Bet 可以更宽松地跟注
+        const adjustedThreshold = isTargetLoose ? 0.50 : 0.55;
+
         // 面对3-Bet时收紧范围
         if (winRate > 0.70) {
             action = rnd < 0.6 ? 'allin' : 'call'; // 4-Bet or Call
-        } else if (winRate > 0.55) {
+        } else if (winRate > adjustedThreshold) {
             action = 'call';
         } else {
             return {
@@ -174,15 +217,30 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         if (callAmt === 0) {
             action = 'call'; // Check
 
-            // 偷鸡逻辑
-            let bluffChance = 0.35;
-            if (isTightTable) bluffChance += 0.15;
-            if (isAggressiveTable) bluffChance -= 0.15;
-            if (isLooseTable) bluffChance -= 0.10;
-
-            if (posAdvantage > 0.7 && boardTexture < 0.4 && rnd < bluffChance) {
-                isBluffing = true;
+            // ========== C-Bet 逻辑 ==========
+            // 如果是翻前加注者，在翻牌优先考虑 C-Bet
+            if (shouldConsiderCBet && rnd < cBetChance) {
                 action = 'raise';
+                isBluffing = winRate < 0.40;
+            }
+            // ========== 普通 Bluff 逻辑 ==========
+            else {
+                let bluffChance = 0.35;
+                if (isTightTable) bluffChance += 0.15;
+                if (isAggressiveTable) bluffChance -= 0.15;
+                if (isLooseTable) bluffChance -= 0.10;
+
+                // 应用多人锅惩罚：多人锅时大幅降低 bluff 频率
+                bluffChance *= multiwayBluffPenalty;
+
+                // 利用个体对手档案：面对被动玩家更多 bluff
+                if (isTargetPassive) bluffChance += 0.15;
+                if (isTargetTight) bluffChance += 0.10;
+
+                if (posAdvantage > 0.7 && boardTexture < 0.4 && rnd < bluffChance) {
+                    isBluffing = true;
+                    action = 'raise';
+                }
             }
         } else {
             // E. 面对下注决策
@@ -207,6 +265,31 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
                 // ============ 河牌特殊逻辑 ============
                 if (isRiver) {
+                    // ========== 阻断牌分析 (Blockers) ==========
+                    // 检查我们的手牌是否阻断了对手的坚果牌
+                    let hasNutBlocker = false;
+                    let hasFlushBlocker = false;
+
+                    // 检查同花阻断牌：持有该花色的 A 会阻断坚果同花
+                    const boardSuits: Record<string, number> = {};
+                    ctx.communityCards.forEach(c => {
+                        boardSuits[c.suit] = (boardSuits[c.suit] || 0) + 1;
+                    });
+                    const dominantSuit = Object.entries(boardSuits).find(([_, count]) => count >= 3)?.[0];
+
+                    if (dominantSuit) {
+                        // 检查我们是否持有该花色的 A
+                        hasFlushBlocker = player.hand.some(c =>
+                            c.suit === dominantSuit && c.rank === 'A'
+                        );
+                        if (hasFlushBlocker) hasNutBlocker = true;
+                    }
+
+                    // 检查高牌阻断：持有 A 或 K 可能阻断对手的顶对
+                    const hasHighBlocker = player.hand.some(c =>
+                        c.rank === 'A' || c.rank === 'K'
+                    );
+
                     // 河牌没有听牌，胜率就是最终胜率
                     if (winRate > 0.50) {
                         // 有成牌，价值下注
@@ -216,8 +299,27 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                             action = 'call';
                         }
                     } else if (winRate > 0.35 && isCheap) {
-                        // 抓诈唬：如果对手可能在诈唬，便宜可以跟
-                        action = rnd < 0.5 ? 'call' : 'fold';
+                        // 抓诈唬 (Bluff Catching) 增强逻辑
+                        let bluffCatchChance = 0.5;
+
+                        // 利用个体对手档案：面对激进对手更愿意抓诈唬
+                        if (targetOpponentProfile && targetOpponentProfile.aggression > 1.3) {
+                            bluffCatchChance += 0.20;
+                        }
+                        // 面对被动对手，减少抓诈唬
+                        if (isTargetPassive) {
+                            bluffCatchChance -= 0.20;
+                        }
+                        // 持有阻断牌时更愿意抓诈唬
+                        if (hasNutBlocker) {
+                            bluffCatchChance += 0.15;
+                        }
+
+                        action = rnd < bluffCatchChance ? 'call' : 'fold';
+                    } else if (callAmt === 0 && hasNutBlocker && rnd < 0.3 * multiwayBluffPenalty) {
+                        // 有阻断牌时可以考虑 bluff
+                        action = 'raise';
+                        isBluffing = true;
                     } else {
                         action = 'fold';
                     }
@@ -250,19 +352,44 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         }
     }
 
-    // === 下注尺寸 (Bet Sizing) ===
+    // === 下注尺寸 (Bet Sizing) 优化 ===
     let raiseAmount: number | undefined;
     if (action === 'raise') {
         let betFactor = 0.6; // 默认 60% 底池
 
+        // 1. 基于胜率的调整
         if (winRate > 0.8) {
             betFactor = 0.8 + Math.random() * 0.4;
         } else if (isBluffing) {
+            // Bluff 尺寸极化：要么小要么大
             betFactor = rnd < 0.5 ? 0.5 : 1.0;
         }
 
+        // 2. 牌面材质调整：湿润牌面需要更大尺寸保护
         if (boardTexture > 0.6 && winRate > 0.6) {
             betFactor += 0.3;
+        } else if (boardTexture < 0.3 && winRate > 0.5) {
+            // 干燥牌面可以用较小尺寸
+            betFactor -= 0.1;
+        }
+
+        // 3. SPR 调整：浅筹码使用较大比例，深筹码可以较小试探
+        if (isShallowStack) {
+            betFactor += 0.2;  // 浅筹码时下注更大比例
+        } else if (isDeepStack && winRate < 0.5) {
+            betFactor -= 0.15;  // 深筹码时可以小额试探
+        }
+
+        // 4. 超池下注 (Overbet)：极化范围时使用
+        // 只在河牌或强牌时考虑超池
+        const isRiver = ctx.stage === 'river';
+        if (isRiver && winRate > 0.85 && rnd < 0.25) {
+            betFactor = 1.2 + Math.random() * 0.5;  // 120-170% 底池
+        }
+
+        // 5. C-Bet 尺寸：通常较小
+        if (shouldConsiderCBet && !isBluffing) {
+            betFactor = 0.4 + Math.random() * 0.2;  // 40-60% 底池
         }
 
         let betSize = ctx.pot * betFactor;
