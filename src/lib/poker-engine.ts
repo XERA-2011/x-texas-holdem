@@ -288,9 +288,68 @@ export interface SuperAIConfig {
 
 /** 默认超级 AI 配置 */
 export const DEFAULT_SUPER_AI_CONFIG: SuperAIConfig = {
-  monteCarloSims: 1000,
+  monteCarloSims: 3000,  // 提高模拟次数以获得更精确的胜率估算
   opponentModeling: true,
   thinkingDelay: 1500
+};
+
+/**
+ * 翻前起手牌强度预计算表 (Preflop Hand Rankings)
+ * 基于 vs 随机手牌的胜率，已针对单挑进行校准
+ * Key 格式: 'AA', 'AKs' (同花), 'AKo' (杂色)
+ * Value: 0.0 (最弱) - 1.0 (最强)
+ */
+export const PREFLOP_HAND_STRENGTH: Record<string, number> = {
+  // === 对子 (Pocket Pairs) ===
+  'AA': 0.85, 'KK': 0.82, 'QQ': 0.80, 'JJ': 0.77, 'TT': 0.75,
+  '99': 0.72, '88': 0.69, '77': 0.66, '66': 0.63, '55': 0.60,
+  '44': 0.57, '33': 0.54, '22': 0.51,
+
+  // === 同花连牌 (Suited Connectors) ===
+  'AKs': 0.67, 'AQs': 0.66, 'AJs': 0.65, 'ATs': 0.64, 'A9s': 0.60,
+  'A8s': 0.59, 'A7s': 0.58, 'A6s': 0.57, 'A5s': 0.58, 'A4s': 0.57,
+  'A3s': 0.56, 'A2s': 0.55,
+  'KQs': 0.63, 'KJs': 0.62, 'KTs': 0.61, 'K9s': 0.58, 'K8s': 0.55,
+  'K7s': 0.54, 'K6s': 0.53, 'K5s': 0.52, 'K4s': 0.51, 'K3s': 0.50,
+  'K2s': 0.49,
+  'QJs': 0.60, 'QTs': 0.59, 'Q9s': 0.56, 'Q8s': 0.53, 'Q7s': 0.50,
+  'Q6s': 0.49, 'Q5s': 0.48, 'Q4s': 0.47, 'Q3s': 0.46, 'Q2s': 0.45,
+  'JTs': 0.57, 'J9s': 0.54, 'J8s': 0.51, 'J7s': 0.48, 'J6s': 0.45,
+  'J5s': 0.44, 'J4s': 0.43, 'J3s': 0.42, 'J2s': 0.41,
+  'T9s': 0.54, 'T8s': 0.51, 'T7s': 0.48, 'T6s': 0.45, 'T5s': 0.42,
+  'T4s': 0.41, 'T3s': 0.40, 'T2s': 0.39,
+  '98s': 0.50, '97s': 0.47, '96s': 0.44, '95s': 0.41, '94s': 0.38,
+  '93s': 0.37, '92s': 0.36,
+  '87s': 0.47, '86s': 0.44, '85s': 0.41, '84s': 0.38, '83s': 0.35,
+  '82s': 0.34,
+  '76s': 0.44, '75s': 0.41, '74s': 0.38, '73s': 0.35, '72s': 0.32,
+  '65s': 0.41, '64s': 0.38, '63s': 0.35, '62s': 0.32,
+  '54s': 0.40, '53s': 0.37, '52s': 0.34,
+  '43s': 0.36, '42s': 0.33,
+  '32s': 0.33,
+
+  // === 杂色高牌 (Offsuit High Cards) ===
+  'AKo': 0.65, 'AQo': 0.64, 'AJo': 0.63, 'ATo': 0.62, 'A9o': 0.57,
+  'A8o': 0.56, 'A7o': 0.55, 'A6o': 0.54, 'A5o': 0.55, 'A4o': 0.54,
+  'A3o': 0.53, 'A2o': 0.52,
+  'KQo': 0.61, 'KJo': 0.60, 'KTo': 0.59, 'K9o': 0.55, 'K8o': 0.52,
+  'K7o': 0.51, 'K6o': 0.49, 'K5o': 0.48, 'K4o': 0.47, 'K3o': 0.46,
+  'K2o': 0.45,
+  'QJo': 0.57, 'QTo': 0.56, 'Q9o': 0.53, 'Q8o': 0.49, 'Q7o': 0.46,
+  'Q6o': 0.45, 'Q5o': 0.44, 'Q4o': 0.43, 'Q3o': 0.42, 'Q2o': 0.41,
+  'JTo': 0.54, 'J9o': 0.51, 'J8o': 0.47, 'J7o': 0.44, 'J6o': 0.41,
+  'J5o': 0.40, 'J4o': 0.39, 'J3o': 0.38, 'J2o': 0.37,
+  'T9o': 0.51, 'T8o': 0.47, 'T7o': 0.44, 'T6o': 0.41, 'T5o': 0.38,
+  'T4o': 0.37, 'T3o': 0.36, 'T2o': 0.35,
+  '98o': 0.46, '97o': 0.43, '96o': 0.40, '95o': 0.37, '94o': 0.34,
+  '93o': 0.33, '92o': 0.32,
+  '87o': 0.43, '86o': 0.40, '85o': 0.37, '84o': 0.34, '83o': 0.31,
+  '82o': 0.30,
+  '76o': 0.40, '75o': 0.37, '74o': 0.34, '73o': 0.31, '72o': 0.28,
+  '65o': 0.37, '64o': 0.34, '63o': 0.31, '62o': 0.28,
+  '54o': 0.36, '53o': 0.33, '52o': 0.30,
+  '43o': 0.32, '42o': 0.29,
+  '32o': 0.29
 };
 
 /** 对手建模档案 */
@@ -817,6 +876,12 @@ export class PokerGameEngine {
         player.hasActed = true;
         break;
     }
+
+    // ============ 对手建模：收集统计数据 ============
+    if (this.aiMode === 'super' && this.superAIConfig.opponentModeling && !player.isHuman) {
+      this._updateOpponentProfile(player, action);
+    }
+
     this.finishTurn();
   }
 
@@ -1487,6 +1552,96 @@ export class PokerGameEngine {
   }
 
   /**
+   * 获取或创建玩家的对手档案
+   */
+  _getOrCreateProfile(playerId: number): OpponentProfile {
+    if (!this.opponentProfiles.has(playerId)) {
+      this.opponentProfiles.set(playerId, createDefaultProfile(playerId));
+    }
+    return this.opponentProfiles.get(playerId)!;
+  }
+
+  /**
+   * 更新对手档案统计数据
+   * 在每次玩家行动后调用
+   */
+  _updateOpponentProfile(player: Player, action: 'fold' | 'call' | 'raise' | 'allin') {
+    const profile = this._getOrCreateProfile(player.id);
+    const n = profile.handsPlayed;
+
+    // 1. 更新 VPIP (Voluntarily Put In Pot) - 入池率
+    // 在翻前，如果玩家主动投入筹码 (call/raise/allin 而非 fold)
+    if (this.stage === 'preflop') {
+      const didVPIP = action !== 'fold';
+      // 增量平均: newAvg = (oldAvg * n + newValue) / (n + 1)
+      profile.vpip = (profile.vpip * n + (didVPIP ? 1 : 0)) / (n + 1);
+
+      // 2. 更新 PFR (Pre-Flop Raise) - 翻前加注率
+      const didPFR = action === 'raise' || action === 'allin';
+      profile.pfr = (profile.pfr * n + (didPFR ? 1 : 0)) / (n + 1);
+    }
+
+    // 3. 更新激进度 (Aggression Factor)
+    // AF = (Raise + Bet) / Call，这里简化为 raise 比例
+    if (action === 'raise' || action === 'allin') {
+      profile.aggression = Math.min(2.0, profile.aggression + 0.1);
+    } else if (action === 'call') {
+      profile.aggression = Math.max(0.3, profile.aggression - 0.05);
+    }
+
+    profile.handsPlayed = n + 1;
+  }
+
+  /**
+   * 更新对手摊牌牌力统计
+   * 在摊牌后调用，用于建模对手的手牌范围
+   */
+  _updateShowdownStrength(player: Player, handRank: HandRankType) {
+    const profile = this._getOrCreateProfile(player.id);
+    profile.showdownStrengths.push(handRank);
+    // 只保留最近 20 次摊牌记录
+    if (profile.showdownStrengths.length > 20) {
+      profile.showdownStrengths.shift();
+    }
+  }
+
+  /**
+   * 获取活跃对手的平均统计数据
+   */
+  _getAverageOpponentStats(): { avgVpip: number; avgPfr: number; avgAggression: number } {
+    const activeOpponents = this.players.filter(
+      p => !p.isEliminated && p.status !== 'folded' && !p.isHuman
+    );
+
+    if (activeOpponents.length === 0) {
+      return { avgVpip: 0.5, avgPfr: 0.2, avgAggression: 1.0 };
+    }
+
+    let totalVpip = 0, totalPfr = 0, totalAgg = 0;
+    let count = 0;
+
+    for (const opp of activeOpponents) {
+      const profile = this.opponentProfiles.get(opp.id);
+      if (profile && profile.handsPlayed > 0) {
+        totalVpip += profile.vpip;
+        totalPfr += profile.pfr;
+        totalAgg += profile.aggression;
+        count++;
+      }
+    }
+
+    if (count === 0) {
+      return { avgVpip: 0.5, avgPfr: 0.2, avgAggression: 1.0 };
+    }
+
+    return {
+      avgVpip: totalVpip / count,
+      avgPfr: totalPfr / count,
+      avgAggression: totalAgg / count
+    };
+  }
+
+  /**
    * 蒙特卡洛模拟核心方法
    * 计算当前玩家在剩下发牌随机情况下的胜率
    */
@@ -1584,107 +1739,284 @@ export class PokerGameEngine {
   }
 
   /**
-   * 超级电脑决策逻辑
+   * 获取手牌的标准 Key (用于查表)
+   * @returns 'AA', 'AKs' (同花), 'AKo' (杂色) 格式
+   */
+  _getHandKey(hand: Card[]): string {
+    if (hand.length < 2) return '';
+
+    const c1 = hand[0];
+    const c2 = hand[1];
+
+    // 按大小排序 (大的在前)
+    let r1 = c1.rank;
+    let r2 = c2.rank;
+    if (c2.value > c1.value) {
+      [r1, r2] = [r2, r1];
+    }
+
+    // 对子
+    if (r1 === r2) {
+      return `${r1}${r2}`;
+    }
+
+    // 同花 vs 杂色
+    const suited = c1.suit === c2.suit;
+    return `${r1}${r2}${suited ? 's' : 'o'}`;
+  }
+
+  /**
+   * 翻前使用查表获取手牌强度 (比蒙特卡洛快 100x+)
+   * @returns 0.0 - 1.0 的强度值
+   */
+  _getPreflopStrength(player: Player): number {
+    const key = this._getHandKey(player.hand);
+    const baseStrength = PREFLOP_HAND_STRENGTH[key] ?? 0.35; // 未知牌默认中低
+
+    // 根据活跃对手数量调整 (多人局强度下降)
+    const activeOpponents = this.players.filter(
+      p => !p.isEliminated && p.status !== 'folded' && p.id !== player.id
+    ).length;
+
+    // 每增加一个对手，强度约下降 3-5%
+    const multiWayPenalty = activeOpponents * 0.035;
+
+    return Math.max(0.1, baseStrength - multiWayPenalty);
+  }
+
+  /**
+   * 获取位置优势
+   * @returns 0.0 (最差, OOP) ~ 1.0 (最好, IP/Button)
+   */
+  _getPositionAdvantage(player: Player): number {
+    // 简单的位置评分逻辑：Postflop 越晚行动越好
+    // Postflop 行动顺序从 Dealer+1 开始
+    const N = this.players.length;
+    const playerIdx = this.players.findIndex(p => p.id === player.id);
+    const activePlayerCount = this.players.filter(p => !p.isEliminated && p.status !== 'folded').length;
+
+    // 计算相对于"最早行动者"的偏移量
+    // 0 = First to act (SB/Small Blind position postflop), 1 = Next...
+    const postFlopOrder = (playerIdx - (this.dealerIdx + 1) + N) % N;
+
+    // 归一化得分 (0.0 - 1.0)
+    const score = postFlopOrder / (Math.max(1, N - 1));
+    return Math.min(1.0, Math.max(0.0, score));
+  }
+
+  /**
+   * 分析牌面材质 (Board Texture)
+   * @returns score 0.0 (Dry/干燥) ~ 1.0 (Wet/湿润/危险)
+   */
+  _getBoardTexture(): number {
+    const board = this.communityCards;
+    if (board.length === 0) return 0.5; // Preflop 视为中性
+
+    let score = 0.0;
+
+    // 1. 检查同花可能 (Flush Draw potential)
+    const suitCounts: Record<string, number> = { '♠': 0, '♥': 0, '♣': 0, '♦': 0 };
+    board.forEach(c => { if (c.suit) suitCounts[c.suit as string]++ });
+    const maxSuit = Math.max(...Object.values(suitCounts));
+
+    if (maxSuit >= 3) score += 0.5;     // 已经成同花或强听花
+    else if (maxSuit === 2) score += 0.2; // 有听花可能
+
+    // 2. 检查顺子连牌 (Connectedness)
+    const ranks = board.map(c => c.value).sort((a, b) => a - b);
+    let maxConnected = 1;
+    let currentConn = 1;
+    // 去重后检查连号
+    const uniqueRanks = Array.from(new Set(ranks)).sort((a, b) => a - b);
+    for (let i = 0; i < uniqueRanks.length - 1; i++) {
+      if (uniqueRanks[i + 1] - uniqueRanks[i] === 1) currentConn++;
+      else currentConn = 1;
+      maxConnected = Math.max(maxConnected, currentConn);
+    }
+
+    if (maxConnected >= 3) score += 0.4;    // 3连张 (e.g. 5-6-7)
+    else if (maxConnected === 2) score += 0.15; // 2连张
+
+    // 3. 检查公对 (Paired Board)
+    const rankCounts: Record<number, number> = {};
+    board.forEach(c => rankCounts[c.value] = (rankCounts[c.value] || 0) + 1);
+    const maxRankCount = Math.max(...Object.values(rankCounts));
+
+    if (maxRankCount >= 2) score += 0.25; // 牌面有对子，可能有葫芦/炸弹
+
+    // High Card Texture (高牌面通常更适合激进)
+    const highCardCount = board.filter(c => c.value >= 10).length;
+    if (highCardCount >= 2) score += 0.1;
+
+    return Math.min(1.0, score);
+  }
+
+  /**
+   * 超级电脑决策逻辑 (Enhanced)
    */
   _superAIActionLogic(player: Player) {
-    // 1. 计算精确胜率 (Win Rate/Equity)
-    const winRate = this._calculateWinRateMonteCarlo(player);
-    // player.handDescription = `WR: ${(winRate * 100).toFixed(1)}%`; // Debug Info - Hidden for production
+    const isPreflop = this.stage === 'preflop';
 
-    // 2. 计算基本赔率 (Pot Odds)
+    // 1. 获取胜率：翻前查表 (快速)，翻后蒙特卡洛 (精确)
+    const winRate = isPreflop
+      ? this._getPreflopStrength(player)
+      : this._calculateWinRateMonteCarlo(player);
+
     const callAmt = this.highestBet - player.currentBet;
     const potOdds = callAmt > 0 ? callAmt / (this.pot + callAmt) : 0;
 
-    // 3. 调整因子
-    const boldness = 1.0; // GTO 倾向于理性，减少随机情绪
-    const stage = this.stage;
+    // 新增：上下文感知
+    const posAdvantage = this._getPositionAdvantage(player); // 0.0-1.0
+    const boardTexture = this._getBoardTexture(); // 0.0-1.0
+    const activeOpponents = this.players.filter(p => !p.isEliminated && p.status !== 'folded' && p.id !== player.id).length;
 
-    // 4. 获取位置优势 (Position)
-    // 简化版：越晚行动越好。last to act (currentTurnIdx close to dealerIdx?)
-    // 暂不深度实现
+    // 动态调整胜率阈值 (Based on Pot Odds + Position)
+    // 如果位置好(IP)，我们可以玩得更宽；位置差(OOP)需要更紧
+    const posModifier = (posAdvantage - 0.5) * 0.1; // +/- 0.05
+    const adjustedWinRate = winRate + posModifier;
+
+    // ============ 对手建模：根据对手行为调整策略 ============
+    const oppStats = this._getAverageOpponentStats();
+    // 对手松 (高VPIP) -> 我们更多价值下注，少诈唬
+    // 对手紧 (低VPIP) -> 我们可以更多偷鸡
+    // 对手激进 (高Aggression) -> 我们的诈唬成功率下降，需要更强的牌
+    const isLooseTable = oppStats.avgVpip > 0.55;
+    const isTightTable = oppStats.avgVpip < 0.35;
+    const isAggressiveTable = oppStats.avgAggression > 1.3;
 
     let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
     const rnd = Math.random();
 
-    // 基础策略矩阵
-    // 如果 胜率 >> 赔率，正期望值 -> 玩
+    // A. 极强牌 / 坚果 (Monster)
+    // 胜率极高，或者胜率不错且已经投入很多
+    if (winRate > 0.85 || (winRate > 0.7 && potOdds > 0.4)) {
+      // === GTO 混合策略：防止被读牌 ===
+      // 不是 100% 加注，而是按概率分布选择动作
+      // 湿润牌面: 更多加注保护底池 (80% raise, 15% allin, 5% call)
+      // 干燥牌面: 可以慢打更多 (60% raise, 10% allin, 30% call)
+      const trapChance = boardTexture < 0.3 ? 0.30 : 0.05;
+      const allinChance = boardTexture < 0.3 ? 0.10 : 0.15;
 
-    // 极强牌: 慢打或者做大底池
-    if (winRate > 0.8) {
-      if (rnd < 0.3 && this.raisesInRound < 2) action = 'call'; // 30% 慢打
-      else if (rnd < 0.95) action = 'raise';
+      if (rnd < trapChance && this.raisesInRound < 1) {
+        action = 'call'; // 慢打/诱捕
+      } else if (rnd < trapChance + allinChance) {
+        action = 'allin'; // 偶尔直接全压增加不可预测性
+      } else {
+        action = 'raise'; // 价值加注
+      }
+    }
+    // B. 强牌 (Strong)
+    else if (winRate > 0.65) {
+      // === GTO 混合策略 ===
+      // 70% raise, 20% call (控池), 10% allin (极化)
+      if (rnd < 0.70) action = 'raise';
+      else if (rnd < 0.90) action = 'call';
       else action = 'allin';
     }
-    // 强牌
-    else if (winRate > 0.6) {
-      action = 'raise';
-    }
-    // 中等牌 / 边缘牌
-    else if (winRate > potOdds + 0.1) {
-      // 有正期望，加注保护或跟注
-      if (rnd < 0.4) action = 'raise';
+    // C. 边缘牌 / 中等牌 (Marginal)
+    // 胜率略高于赔率，或者有正期望
+    else if (adjustedWinRate > potOdds + 0.05) {
+      // 如果位置好，倾向于主动加注夺取底池
+      if (posAdvantage > 0.6 && rnd < 0.6) action = 'raise';
       else action = 'call';
     }
-    // 听牌/弱牌但赔率合适
-    else if (winRate > potOdds) {
-      action = 'call';
-    }
-    // 没赔率，但也许可以诈唬 (Bluff)
+    // D. 听牌 / 弱牌 (Draw / Weak)
     else {
-      // 诈唬频率：
-      // 简单模型：如果在后位且大家都过牌，尝试偷
-      // 或者手牌极烂（阻断牌概念太复杂暂略）
+      // 即使胜率低，如果赔率极好（例如 Check 免费看牌），当然看
+      if (callAmt === 0) {
+        action = 'call'; // Check
 
-      let bluffChance = 0.05; // 基础诈唬率 5%
-      if (this.raisesInRound === 0 && callAmt === 0) bluffChance = 0.2; // 没人加注时尝试偷
+        // 没人下注时，位置好可以尝试偷鸡 (Probe Bet / Steal)
+        // 条件：位置好 + 牌面干燥 + 随机
+        // ============ 对手建模调整 ============
+        // 对手紧 -> 偷鸡成功率高，增加频率
+        // 对手激进 -> 可能被反加，减少频率
+        let bluffChance = 0.35;
+        if (isTightTable) bluffChance += 0.15; // 紧桌多偷
+        if (isAggressiveTable) bluffChance -= 0.15; // 激进桌少偷
+        if (isLooseTable) bluffChance -= 0.10; // 松桌容易被跟注
 
-      if (rnd < bluffChance) {
-        player.isBluffing = true;
-        action = 'raise';
-      } else {
-        if (callAmt === 0) action = 'call'; // Check
-        else action = 'fold';
+        if (posAdvantage > 0.7 && boardTexture < 0.4 && rnd < bluffChance) {
+          player.isBluffing = true;
+          action = 'raise';
+        }
+      }
+      // 面临下注时
+      else {
+        // 隐含赔率 (Implied Odds)：如果是强听牌（同花/顺子听牌），虽然胜率当前低，但潜在收益大
+        // 简单判断：如果胜率 > 0.25 (听花/两头顺大约 30%+) 且剩余筹码深
+        if (winRate > 0.25 && potOdds < 0.4) {
+          action = 'call'; // 追牌 (Chase)
+        }
+        // 纯诈唬 (Pure Bluff)
+        // 条件：对手表现弱 + 牌面有吓人张(A/K) + 随机
+        else if (this.raisesInRound === 1 && rnd < 0.1) {
+          // 10% 概率反击诈唬 (Re-raise Bluff) - 慎用
+          // player.isBluffing = true;
+          // action = 'raise';
+          action = 'fold'; // 暂时保守一点，大部分时候弃牌
+        }
+        else {
+          action = 'fold';
+        }
       }
     }
 
-    // 修正与安全检查 (Sanity Check)
+    // === 修正与安全检查 ===
     if (callAmt >= player.chips) {
       if (action === 'raise' || action === 'call') action = 'allin';
     }
 
-    // 如果加注但筹码不够
+    // 如果加注但筹码不够 -> Allin
     if (action === 'raise') {
       const minRaise = Math.max(this.bigBlind, this.lastRaiseAmount);
       if (player.chips <= callAmt + minRaise) {
-        action = 'allin'; // 只有一点点筹码了，直接推
+        action = 'allin';
       }
     }
 
-    // 执行动作
+    // === 执行动作与下注尺寸 (Bet Sizing) ===
     if (action === 'raise') {
-      // 计算合理加注额：底池的 0.5 ~ 1.0 倍
-      // 价值下注：下注 2/3 - 1.0 底池
-      let betSize = this.pot * 0.6;
-      if (winRate > 0.8) betSize = this.pot * 1.0; // 强牌下重注
-      if (player.isBluffing) betSize = this.pot * 0.75; // 诈唬也装作强牌
+      // 动态调整下注尺寸
+      let betFactor = 0.6; // 默认 60% 底池
+
+      // 1. 强牌价值下注：下重注 (75% - 120% Pot)
+      if (winRate > 0.8) {
+        betFactor = 0.8 + Math.random() * 0.4;
+      }
+      // 2. 诈唬下注：极化 (要么很小试探，要么很大吓人)
+      else if (player.isBluffing) {
+        betFactor = rnd < 0.5 ? 0.5 : 1.0;
+      }
+      // 3. 湿润牌面保护：下重注防止买牌
+      if (boardTexture > 0.6 && winRate > 0.6) {
+        betFactor += 0.3;
+      }
+
+      let betSize = this.pot * betFactor;
 
       // 确保最小加注
       const minRaise = Math.max(this.bigBlind, this.lastRaiseAmount);
       if (betSize < minRaise) betSize = minRaise;
+      // 确保不超过自身筹码
+      if (betSize > player.chips) betSize = player.chips;
 
       this.handleAction(player, 'raise', Math.floor(betSize));
     } else {
       this.handleAction(player, action);
     }
 
-    // 发言逻辑复用
-    const speakChance = 0.3;
+    // === 发言系统 ===
+    const speakChance = 0.35;
     if (Math.random() < speakChance) {
       let st: any = action === 'call' && callAmt === 0 ? 'check' : action;
       if (player.status === 'folded') st = 'fold';
       if (player.isBluffing) st = 'bluff_act';
-      this.speakRandom(player, st);
-    }
 
+      // 随机延迟一点发言以免和音效重叠
+      setTimeout(() => {
+        if (!this._isDestroyed) this.speakRandom(player, st);
+      }, 200 + Math.random() * 500);
+    }
   }
 }
