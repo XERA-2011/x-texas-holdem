@@ -13,9 +13,9 @@ on:
       - '.github/workflows/deploy-aliyun.yml'
   workflow_dispatch:
 
-env:
   CI: true
   TZ: Asia/Shanghai
+  ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
 
 jobs:
   deploy:
@@ -42,7 +42,7 @@ jobs:
         run: pnpm run build:aliyun
 
       - name: Deploy to server
-        if: ${{ secrets.ALIYUN_HOST != '' }}
+        if: ${{ env.ALIYUN_HOST != '' }}
         uses: easingthemes/ssh-deploy@v5.1.1
         with:
           SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_KEY }}
@@ -54,7 +54,7 @@ jobs:
           ARGS: '-avz --delete'
 
       - name: Reload Nginx
-        if: ${{ secrets.ALIYUN_HOST != '' }}
+        if: ${{ env.ALIYUN_HOST != '' }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.ALIYUN_HOST }}
