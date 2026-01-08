@@ -1,14 +1,14 @@
 {
-    "name": "Texas Hold'em - 单机德州扑克",
-    "short_name": "德州扑克",
-    "description": "免费在线玩单机德州扑克，挑战智能AI",
-    "start_url": "/x-texas-holdem/",
+    "name": "单机德州扑克 | 上班摸鱼神器",
+    "short_name": "摸鱼德州",
+    "description": "无需下载、即点即玩。免费单机德州扑克，挑战智能AI。",
+    "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#18181b",
     "icons": [
         {
-            "src": "/x-texas-holdem/favicon.ico",
+            "src": "favicon.ico",
             "sizes": "any",
             "type": "image/x-icon"
         }
