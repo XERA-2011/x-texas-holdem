@@ -117,13 +117,34 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                 action = 'raise';
             }
         } else {
-            // 隐含赔率
-            if (winRate > 0.25 && potOdds < 0.4) {
-                action = 'call';
-            } else if (ctx.raisesInRound === 1 && rnd < 0.1) {
-                action = 'fold';
+            // E. 面对下注决策
+            // 计算跟注成本比例
+            const callCostRatio = callAmt / (ctx.pot + callAmt);
+            const isCheap = callCostRatio < 0.20 || callAmt <= ctx.bigBlind * 2;
+
+            // 1. 隐含赔率与合适性 (Implied Odds)
+            // 如果很便宜，且手牌有潜力 (同花连张等，winRate > 0.3)，或者仅仅是好奇 (RNG)
+            // 翻牌前特别宽容
+            if (isPreflop) {
+                if (isCheap && rnd < 0.90) {
+                    action = 'call'; // 便宜看翻牌
+                } else if (winRate > 0.45 || (winRate > 0.35 && posAdvantage > 0.6)) {
+                    action = 'call';
+                } else {
+                    action = 'fold';
+                }
             } else {
-                action = 'fold';
+                // 翻牌后
+                if (winRate > 0.25 && potOdds < 0.45) {
+                    action = 'call'; // 听牌
+                }
+                // "好奇心"机制：如果真的很便宜，偶尔看看
+                else if (isCheap && winRate > 0.3 && rnd < 0.4) {
+                    action = 'call';
+                }
+                else {
+                    action = 'fold';
+                }
             }
         }
     }
