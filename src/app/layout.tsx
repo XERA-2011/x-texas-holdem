@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "单机德州扑克 | 上班摸鱼神器 - 挑战高智商AI",
+  title: "单机德州扑克 | 摸鱼神器 | 挑战AI",
   description: "专门为上班族打造的摸鱼神器！无需下载、无需登录、即点即玩。免费单机德州扑克，随时暂停，挑战智能AI，体验纯粹的博弈乐趣。",
   keywords: [
     '单机德州扑克',
