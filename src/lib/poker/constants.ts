@@ -125,3 +125,17 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     aiMode: 'normal',
     roundLimit: 8
 };
+
+export const GAME_RULES = {
+    INITIAL_CHIPS: 1000,
+    SMALL_BLIND: 5,
+    BIG_BLIND: 10,
+    MAX_PLAYERS: 7,
+    LOG_HISTORY_LIMIT: 50,
+};
+
+export const UI_CONSTANTS = {
+    AI_THINKING_DELAY_BASE: 800,
+    AI_THINKING_DELAY_VARIANCE: 1000,
+    SPEECH_DISPLAY_TIME: 3000,
+};

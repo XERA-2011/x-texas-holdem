@@ -35,7 +35,7 @@ export function GameControls({
             onClick={onReset}
             className="w-full max-w-md bg-green-600 hover:bg-green-700 text-white font-bold h-14 flex items-center justify-center px-6 rounded-lg shadow-lg active:scale-95 transition-all text-lg md:text-xl"
           >
-            Game Over! Restart Game 🔄
+            游戏结束！重新开始 🔄
           </button>
         </div>
       );
@@ -47,7 +47,7 @@ export function GameControls({
           onClick={onNextRound}
           className="w-full max-w-md bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-bold h-14 flex items-center justify-center px-6 rounded-lg shadow-lg active:scale-95 transition-all text-lg md:text-xl"
         >
-          Start Next Round
+          下一局
         </button>
       </div>
     );
@@ -72,9 +72,9 @@ export function GameControls({
       amount *= 2;
     }
 
-    // 始终添加 All In 选项
+    // 始终添加全押选项
     options.push({
-      label: `ALL IN`,
+      label: `全押`,
       amount: playerChips,
       isAllIn: true
     });
@@ -118,7 +118,7 @@ export function GameControls({
           disabled={isDisabled}
           className="flex-1 md:flex-none md:w-[140px] bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-black dark:text-white font-bold h-12 md:h-14 [@media(max-height:700px)]:h-10 [@media(max-height:500px)]:h-8 [@media(max-height:400px)]:h-6 flex items-center justify-center px-1 md:px-2 rounded-lg shadow-lg active:scale-95 transition-all text-sm md:text-lg [@media(max-height:700px)]:text-xs [@media(max-height:500px)]:text-[10px] [@media(max-height:400px)]:text-[9px]"
         >
-          Fold
+          弃牌
         </button>
 
         <button
@@ -126,7 +126,7 @@ export function GameControls({
           disabled={isDisabled}
           className="flex-1 md:flex-none md:w-[140px] bg-zinc-800 dark:bg-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold h-12 md:h-14 [@media(max-height:700px)]:h-10 [@media(max-height:500px)]:h-8 [@media(max-height:400px)]:h-6 flex items-center justify-center px-1 md:px-2 rounded-lg shadow-lg active:scale-95 transition-all text-sm md:text-lg [@media(max-height:700px)]:text-xs [@media(max-height:500px)]:text-[10px] [@media(max-height:400px)]:text-[9px] whitespace-nowrap"
         >
-          {callAmount === 0 ? 'Check' : `Call $${callAmount}`}
+          {callAmount === 0 ? '过牌' : `跟注 $${callAmount}`}
         </button>
 
         {/* Raise 按钮 + 选项 */}
@@ -156,7 +156,7 @@ export function GameControls({
             className={`w-full bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed text-white dark:text-black font-bold h-12 md:h-14 [@media(max-height:700px)]:h-10 [@media(max-height:500px)]:h-8 [@media(max-height:400px)]:h-6 flex items-center justify-center gap-1 px-1 md:px-2 rounded-lg shadow-lg active:scale-95 transition-all text-sm md:text-lg [@media(max-height:700px)]:text-xs [@media(max-height:500px)]:text-[10px] [@media(max-height:400px)]:text-[9px]
               ${showRaiseOptions ? 'ring-2 ring-blue-500' : ''}`}
           >
-            <span>Raise</span>
+            <span>加注</span>
             <span className="text-[10px] md:text-xs">{showRaiseOptions ? '▼' : '▲'}</span>
           </button>
         </div>

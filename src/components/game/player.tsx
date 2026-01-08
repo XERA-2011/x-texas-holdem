@@ -66,6 +66,15 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
           </div>
         )}
 
+        {/* Thinking Indicator */}
+        {isActiveTurn && !isWinner && !player.isHuman && player.status === 'active' && (
+          <div className="absolute top-[-24px] sm:top-[-28px] left-1/2 -translate-x-1/2 z-50 animate-pulse">
+            <span className="text-[9px] sm:text-[10px] bg-white/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700 rounded-full px-2 py-0.5 shadow-sm whitespace-nowrap text-zinc-600 dark:text-zinc-300 font-medium flex items-center gap-1">
+              <span className="animate-spin inline-block">⏳</span> 思考中...
+            </span>
+          </div>
+        )}
+
 
         {/* Hand Description Badge (Showdown) */}
         {player.handDescription && (

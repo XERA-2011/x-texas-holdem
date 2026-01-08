@@ -10,7 +10,8 @@
     "lint": "eslint",
     "test:simulation": "npx tsx src/lib/run-simulation.ts",
     "test:normal": "npx tsx src/lib/run-simulation.ts --mode=normal",
-    "test:super": "npx tsx src/lib/run-simulation.ts --mode=super"
+    "test:super": "npx tsx src/lib/run-simulation.ts --mode=super",
+    "test:unit": "npx tsx src/lib/poker/run-unit-tests.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

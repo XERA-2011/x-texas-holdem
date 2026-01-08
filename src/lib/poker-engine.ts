@@ -1,6 +1,7 @@
 import {
   SUITS, RANKS, RANK_VALUE, BOT_NAMES, SPEECH_LINES,
-  DEFAULT_SUPER_AI_CONFIG, PREFLOP_HAND_STRENGTH, DEFAULT_GAME_CONFIG
+  DEFAULT_SUPER_AI_CONFIG, PREFLOP_HAND_STRENGTH, DEFAULT_GAME_CONFIG,
+  GAME_RULES, UI_CONSTANTS
 } from './poker/constants';
 import { Card, Deck } from './poker/card';
 import { evaluateHand } from './poker/evaluator';
@@ -26,6 +27,7 @@ import { calculatePotDistribution } from './poker/pot-distribution';
 export {
   SUITS, RANKS, RANK_VALUE, BOT_NAMES, SPEECH_LINES,
   DEFAULT_SUPER_AI_CONFIG, PREFLOP_HAND_STRENGTH, DEFAULT_GAME_CONFIG,
+  GAME_RULES, UI_CONSTANTS,
   Card, Deck,
   evaluateHand,
   type Suit, type Rank, HandRankType, type HandResult, type PersonaType,
@@ -60,7 +62,7 @@ export class PokerGameEngine {
   winners: number[] = [];
   winningCards: Card[] = [];
   lastRaiseAmount: number = 0;
-  bigBlind: number = 10;
+  bigBlind: number = GAME_RULES.BIG_BLIND;
 
   // ============ 超级电脑模式属性 ============
   /** 当前 AI 模式 */
@@ -78,7 +80,7 @@ export class PokerGameEngine {
   /** 本轮对局是否完成 */
   isSessionComplete: boolean = false;
   /** 初始筹码 (用于计算变化) */
-  initialChips: number = 1000;
+  initialChips: number = GAME_RULES.INITIAL_CHIPS;
 
   constructor(onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void) {
     this.onChange = onChange;
@@ -102,14 +104,14 @@ export class PokerGameEngine {
     // Initialize Random Expert Players
     const shuffledNames = [...BOT_NAMES].sort(() => 0.5 - Math.random());
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < GAME_RULES.MAX_PLAYERS; i++) {
       const isHuman = i === 0;
       this.players.push({
         id: i,
         persona: isHuman ? 'human' : 'bot',
         name: isHuman ? 'You' : shuffledNames[i - 1],
         isHuman: isHuman,
-        chips: 1000,
+        chips: GAME_RULES.INITIAL_CHIPS,
         hand: [],
         status: 'active',
         currentBet: 0,
@@ -179,7 +181,6 @@ export class PokerGameEngine {
       p.hand = [];
       p.status = p.isEliminated ? 'eliminated' : 'active';
       p.currentBet = 0;
-      p.currentBet = 0;
       p.totalHandBet = 0;
       p.hasActed = false;
       p.currentSpeech = undefined;
@@ -208,11 +209,11 @@ export class PokerGameEngine {
 
     const bbIdx = this.getNextActive(sbIdx);
 
-    this.bet(this.players[sbIdx], 5);
-    this.bet(this.players[bbIdx], 10);
-    this.highestBet = 10;
+    this.bet(this.players[sbIdx], GAME_RULES.SMALL_BLIND);
+    this.bet(this.players[bbIdx], GAME_RULES.BIG_BLIND);
+    this.highestBet = GAME_RULES.BIG_BLIND;
 
-    this.log(`庄家 ${this.players[this.dealerIdx].name}, 盲注 $5/$10`, 'phase');
+    this.log(`庄家 ${this.players[this.dealerIdx].name}, 盲注 $${GAME_RULES.SMALL_BLIND}/$${GAME_RULES.BIG_BLIND}`, 'phase');
 
     this.prepareBettingRound(this.getNextActive(bbIdx));
     this.notify();
@@ -503,8 +504,8 @@ export class PokerGameEngine {
       message,
       type
     });
-    // 保留最多 50 条日志
-    if (this.logs.length > 50) this.logs.pop();
+    // 保留最多日志
+    if (this.logs.length > GAME_RULES.LOG_HISTORY_LIMIT) this.logs.pop();
   }
 
   notify() {
@@ -603,7 +604,7 @@ export class PokerGameEngine {
         setTimeout(() => {
           if (this._isDestroyed || this.roundId !== currentRoundId) return;
           this.aiAction(p);
-        }, 800 + Math.random() * 1000);
+        }, UI_CONSTANTS.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.AI_THINKING_DELAY_VARIANCE);
       }
 
     } catch (e: unknown) {
@@ -714,7 +715,7 @@ export class PokerGameEngine {
         player.currentSpeech = undefined;
         this.notify();
       }
-    }, 3000);
+    }, UI_CONSTANTS.SPEECH_DISPLAY_TIME);
 
   }
 

@@ -161,7 +161,7 @@ export default function TexasHoldemPage() {
                 </div>
                 <div className={`col-span-3 flex items-center justify-end font-medium ${delta > 0 ? 'text-green-600 dark:text-green-400' : delta < 0 ? 'text-red-600 dark:text-red-400' : 'text-zinc-500'
                   }`}>
-                  {delta > 0 ? '+' : ''}{delta === 0 ? '±0' : `$${delta}`}
+                  {delta > 0 ? '+' : ''}{delta === 0 ? '±0' : (delta < 0 ? `-$${Math.abs(delta)}` : `$${delta}`)}
                 </div>
               </div>
             ))}
