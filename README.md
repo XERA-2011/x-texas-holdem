@@ -26,6 +26,12 @@ pnpm test:normal
 
 # 仅测试超级电脑模式
 pnpm test:super
+
+# 单元测试 (牌型评估)
+pnpm test:unit
+
+# 胜率计算测试 (验证蒙特卡洛算法准确性)
+pnpm test:equity
 ```
 
 **打包部署**

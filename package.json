@@ -11,7 +11,8 @@
     "test:simulation": "npx tsx tests/run-simulation.ts",
     "test:normal": "npx tsx tests/run-simulation.ts --mode=normal",
     "test:super": "npx tsx tests/run-simulation.ts --mode=super",
-    "test:unit": "npx tsx tests/run-unit-tests.ts"
+    "test:unit": "npx tsx tests/run-unit-tests.ts",
+    "test:equity": "npx tsx tests/test-win-rate.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
