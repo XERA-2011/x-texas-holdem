@@ -41,6 +41,13 @@ jobs:
       - name: Build for Aliyun
         run: pnpm run build:aliyun
 
+      - name: Check build output
+        run: |
+          if [ ! -d "out" ] || [ -z "$(ls -A out)" ]; then
+            echo "Error: Build output directory 'out' is empty or does not exist."
+            exit 1
+          fi
+
       - name: Deploy to server
         if: ${{ env.ALIYUN_HOST != '' }}
         uses: easingthemes/ssh-deploy@v5.1.1
