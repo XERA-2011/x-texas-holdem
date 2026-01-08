@@ -7,7 +7,10 @@
     "build": "next build",
     "build:aliyun": "cross-env NEXT_PUBLIC_BASE_PATH=/texas-holdem next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:simulation": "npx tsx src/lib/run-simulation.ts",
+    "test:normal": "npx tsx src/lib/run-simulation.ts --mode=normal",
+    "test:super": "npx tsx src/lib/run-simulation.ts --mode=super"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

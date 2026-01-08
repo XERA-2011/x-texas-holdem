@@ -6,7 +6,7 @@
 
 ### 特性 (Features)
 - **超级电脑模式 (Super AI)**: 集成蒙特卡洛模拟 (Monte Carlo Simulation) 与对手建模，提供 GTO 风格的高难度对战体验。
-- **模式切换**: 游戏内支持一键切换 `Normal AI` / `Super AI`。
+- **模式切换**: 游戏内支持一键切换 `普通电脑` / `超级电脑`。
 
 ### 开发与测试 (Command Guide)
 
@@ -19,10 +19,13 @@ pnpm dev
 **模拟测试**
 ```bash
 # 运行 AI 对局模拟 (测试普通 & 超级模式)
-npx tsx src/lib/run-simulation.ts
+pnpm test:simulation
 
-# 仅测试超级AI模式 (Heads-up 胜率验证)
-npx tsx src/lib/run-simulation.ts --mode=super
+# 仅测试普通电脑模式
+pnpm test:normal
+
+# 仅测试超级电脑模式
+pnpm test:super
 ```
 
 **打包部署**

@@ -3,7 +3,14 @@ import { generateMatchReports, runDebugScenarios } from './test-utils';
 
 console.log("正在执行德州扑克引擎随机测试...");
 try {
-    const reports = generateMatchReports(10);
+    // 解析命令行参数
+    const args = process.argv.slice(2);
+    const modeArg = args.find(a => a.startsWith('--mode='));
+    const mode = (modeArg ? modeArg.split('=')[1] : 'normal') as 'normal' | 'super';
+
+    console.log(`Running simulation in ${mode} mode...`);
+
+    const reports = generateMatchReports(10, mode);
     console.log("测试完成。生成报告如下：");
     console.log(JSON.stringify(reports, null, 2));
 
