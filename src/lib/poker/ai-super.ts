@@ -131,6 +131,25 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     const isFacing3Bet = ctx.raisesInRound >= 2;
     const isFacingRaise = ctx.raisesInRound >= 1 && callAmt > ctx.bigBlind * 2;
 
+    // ============ 极好底池赔率检测 (Excellent Pot Odds) ============
+    // 当跟注金额相对底池极小时（如对手小额 All In），几乎应该总是跟注
+    // 例如：底池 $141，跟注只需 $8 (5.4%)，这种赔率几乎不能弃牌
+    const callCostRatio = callAmt / (ctx.pot + callAmt);
+    const hasExcellentPotOdds = callAmt > 0 && callCostRatio < 0.15; // 跟注成本 < 15% 底池
+
+    if (hasExcellentPotOdds) {
+        // 极好的赔率，除非牌极差（胜率极低），否则应该跟注
+        // 即使只有 15% 胜率也值得跟这种赔率
+        if (winRate > 0.10) {
+            return {
+                action: 'call',
+                isBluffing: false,
+                speechType: 'call',
+                shouldSpeak: Math.random() < 0.3
+            };
+        }
+    }
+
     let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
     let isBluffing = false;
     const rnd = Math.random();
