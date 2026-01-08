@@ -16,7 +16,7 @@ export function usePokerGame() {
     };
   }, []);
 
-  const startGame = useCallback((mode: 'normal' | 'super') => {
+  const startGame = useCallback((mode: 'normal' | 'super', roundLimit: number | null = 8) => {
     // Clean up existing game if any
     if (engineRef.current) {
       engineRef.current.destroy();
@@ -27,6 +27,7 @@ export function usePokerGame() {
     });
 
     engine.setAIMode(mode);
+    engine.roundLimit = roundLimit;
     engineRef.current = engine;
 
     // Start first round
@@ -61,6 +62,19 @@ export function usePokerGame() {
     }
   }, []);
 
+  const startNewSession = useCallback(() => {
+    if (engineRef.current) {
+      engineRef.current.startNewSession();
+    }
+  }, []);
+
+  const getLeaderboard = useCallback(() => {
+    if (engineRef.current) {
+      return engineRef.current.getLeaderboard();
+    }
+    return [];
+  }, []);
+
   return {
     gameState,
     startGame,
@@ -68,5 +82,7 @@ export function usePokerGame() {
     humanAction,
     startNextRound,
     resetGame,
+    startNewSession,
+    getLeaderboard,
   };
 }

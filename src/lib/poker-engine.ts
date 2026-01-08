@@ -320,6 +320,18 @@ function createDefaultProfile(playerId: number): OpponentProfile {
   };
 }
 
+/** 游戏配置 */
+export interface GameConfig {
+  aiMode: AIMode;
+  roundLimit: number | null;  // null = 无限制
+}
+
+/** 默认游戏配置 */
+export const DEFAULT_GAME_CONFIG: GameConfig = {
+  aiMode: 'normal',
+  roundLimit: 8
+};
+
 
 export type PlayerStatus = 'active' | 'folded' | 'allin' | 'eliminated';
 
@@ -380,6 +392,16 @@ export class PokerGameEngine {
   /** 对手建模档案 Map */
   opponentProfiles: Map<number, OpponentProfile> = new Map();
 
+  // ============ 对局倒数功能属性 ============
+  /** 局数上限 (null = 无限制) */
+  roundLimit: number | null = null;
+  /** 当前第几局 (从1开始) */
+  currentRoundNumber: number = 0;
+  /** 本轮对局是否完成 */
+  isSessionComplete: boolean = false;
+  /** 初始筹码 (用于计算变化) */
+  initialChips: number = 1000;
+
   constructor(onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void) {
     this.onChange = onChange;
     this.players = [];
@@ -438,6 +460,15 @@ export class PokerGameEngine {
 
   startNextRound() {
     if (this._isDestroyed) return;
+
+    // 对局倒数检查
+    if (this.roundLimit !== null && this.currentRoundNumber >= this.roundLimit) {
+      this.isSessionComplete = true;
+      this.notify();
+      return;
+    }
+
+    this.currentRoundNumber++;
     this.roundId++; // Invalidate previous timers
     this.stage = 'preflop';
 
@@ -858,7 +889,12 @@ export class PokerGameEngine {
       logs: this.logs,
       winners: this.winners,
       winningCards: this.winningCards,
-      aiMode: this.aiMode
+      aiMode: this.aiMode,
+      // 对局倒数功能
+      roundLimit: this.roundLimit,
+      currentRoundNumber: this.currentRoundNumber,
+      isSessionComplete: this.isSessionComplete,
+      initialChips: this.initialChips
     };
   }
 
@@ -1397,6 +1433,50 @@ export class PokerGameEngine {
       this.speak(player, text);
     }
   }
+
+  // ============================================
+  // 对局倒数功能方法
+  // ============================================
+
+  /**
+   * 获取排行榜数据
+   * 返回按筹码排序的玩家列表，包含排名和筹码变化
+   */
+  getLeaderboard(): { rank: number; player: Player; delta: number }[] {
+    const sorted = [...this.players]
+      .filter(p => !p.isEliminated || p.chips > 0) // 包含被淘汰但有筹码的玩家
+      .sort((a, b) => b.chips - a.chips);
+
+    return sorted.map((player, index) => ({
+      rank: index + 1,
+      player,
+      delta: player.chips - this.initialChips
+    }));
+  }
+
+  /**
+   * 开始新一轮对局 (重置局数但保留玩家和筹码)
+   */
+  startNewSession() {
+    if (this._isDestroyed) return;
+
+    this.currentRoundNumber = 0;
+    this.isSessionComplete = false;
+
+    // 记录当前筹码作为新的初始值
+    this.players.forEach(p => {
+      // 如果玩家被淘汰，给予初始筹码复活
+      if (p.isEliminated) {
+        p.chips = this.initialChips;
+        p.isEliminated = false;
+        p.status = 'active';
+      }
+    });
+
+    this.notify();
+    this.startNextRound();
+  }
+
   // ============================================
   // 超级电脑模式核心逻辑
   // ============================================
