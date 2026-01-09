@@ -58,10 +58,11 @@ jobs:
           REMOTE_USER: ${{ secrets.ALIYUN_USER }}
           SOURCE: 'out/'
           # Target matches basePath: /texas-holdem -> /opt/xera/html/texas-holdem
-          TARGET: '/opt/xera/html/texas-holdem/' 
+          # Upload to a temporary directory first to prevent downtime/corruption if connection drops
+          TARGET: '/opt/xera/html/texas-holdem-temp/' 
           ARGS: '-avz --delete'
 
-      - name: Reload Nginx
+      - name: Finalize Deployment & Reload Nginx
         if: ${{ env.ALIYUN_HOST != '' }}
         uses: appleboy/ssh-action@v1
         with:
@@ -69,6 +70,26 @@ jobs:
           username: ${{ secrets.ALIYUN_USER }}
           key: ${{ secrets.ALIYUN_SSH_KEY }}
           script: |
-            # Reload Nginx to ensure caches are cleared if necessary
-            # Assuming docker container name is xera-nginx as per reference
-            docker exec xera-nginx nginx -s reload || true
+            TARGET="/opt/xera/html/texas-holdem"
+            TEMP="/opt/xera/html/texas-holdem-temp"
+            
+            # Verify upload
+            if [ -d "$TEMP" ] && [ "$(ls -A $TEMP)" ]; then
+              echo "New version uploaded successfully. Swapping..."
+              
+              # Atomic swap strategy
+              # 1. Remove old version
+              rm -rf "$TARGET"
+              
+              # 2. Move temp to target
+              mv "$TEMP" "$TARGET"
+              
+              echo "Swap successful."
+              
+              # Reload Nginx to ensure caches are cleared if necessary
+              # Assuming docker container name is xera-nginx as per reference
+              docker exec xera-nginx nginx -s reload || true
+            else
+              echo "Error: Temp directory is empty or missing. Deployment aborted."
+              exit 1
+            fi
