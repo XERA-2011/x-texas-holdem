@@ -742,7 +742,11 @@ export class PokerGameEngine {
   }
 
   /**
-   * 开始新一轮对局 (重置局数但保留玩家和筹码)
+   * 开始新一轮对局
+   * - 重置局数计数器
+   * - 重置所有玩家筹码为初始值
+   * - 重置所有玩家的淘汰和游戏状态
+   * - 保留玩家名单
    */
   startNewSession() {
     if (this._isDestroyed) return;
