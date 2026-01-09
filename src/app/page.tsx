@@ -123,11 +123,9 @@ export default function TexasHoldemPage() {
           {/* Title */}
           <div className="text-center space-y-2">
             <div className="flex items-center justify-center gap-3">
-              <span className="text-3xl">🏆</span>
               <h1 className="text-3xl font-black text-zinc-900 dark:text-zinc-100">
                 对局结束
               </h1>
-              <span className="text-3xl">🏆</span>
             </div>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {gameState.roundLimit} 局已完成
@@ -152,7 +150,7 @@ export default function TexasHoldemPage() {
               >
                 <div className="col-span-1 flex items-center justify-center">
                   {rank === 1 ? (
-                    <Trophy className="w-5 h-5 text-zinc-900 dark:text-zinc-100" />
+                    <Trophy className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
                   ) : (
                     <span className="text-zinc-500 dark:text-zinc-400">#{rank}</span>
                   )}
@@ -209,13 +207,13 @@ export default function TexasHoldemPage() {
       {/* Top Right Controls */}
       <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
         {/* Round Counter */}
-        {gameState.roundLimit && (
-          <div className="px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-              第 {gameState.currentRoundNumber}/{gameState.roundLimit} 局
-            </span>
-          </div>
-        )}
+        <div className="px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+          <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
+            {gameState.roundLimit
+              ? `第 ${gameState.currentRoundNumber}/${gameState.roundLimit} 局`
+              : `第 ${gameState.currentRoundNumber} 局`}
+          </span>
+        </div>
 
         {/* Current Mode Display & Reset Trigger */}
         <button

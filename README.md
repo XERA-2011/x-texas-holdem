@@ -27,6 +27,9 @@ pnpm test:normal
 # 仅测试超级电脑模式
 pnpm test:super
 
+# AI 对战模拟 (4 普通 vs 4 超级)
+pnpm test:battle
+
 # 单元测试 (牌型评估)
 pnpm test:unit
 

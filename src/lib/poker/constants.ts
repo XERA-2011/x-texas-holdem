@@ -70,7 +70,7 @@ export const SPEECH_LINES: Record<'bot', {
 };
 
 export const DEFAULT_SUPER_AI_CONFIG: SuperAIConfig = {
-    monteCarloSims: 3000,
+    monteCarloSims: 5000,
     opponentModeling: true,
     thinkingDelay: 1500
 };

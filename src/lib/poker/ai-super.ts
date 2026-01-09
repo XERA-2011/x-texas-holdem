@@ -6,9 +6,10 @@
 import { SPEECH_LINES } from './constants';
 import type { Player } from './types';
 import type { Card } from './card';
-import { calculateWinRateMonteCarlo, getPreflopStrength } from './monte-carlo';
+import { calculateWinRateMonteCarlo, getPreflopStrength, getHandKey } from './monte-carlo';
 import { getPositionAdvantage, getBoardTexture } from './board-analysis';
 import type { OpponentProfileManager } from './opponent-profiling';
+import { THREE_BET_VALUE_RANGE, THREE_BET_BLUFF_RANGE, isHandInRange } from './hand-ranges';
 
 /** 超级 AI 游戏上下文 */
 export interface SuperAIContext {
@@ -168,6 +169,40 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     const isFacing3Bet = ctx.raisesInRound >= 2;
     const isFacingRaise = ctx.raisesInRound >= 1 && callAmt > ctx.bigBlind * 2;
 
+    // ============ 增强 3-Bet 策略 ============
+    const handKey = getHandKey(player.hand);
+    const isIn3BetValueRange = isHandInRange(handKey, THREE_BET_VALUE_RANGE);
+    const isIn3BetBluffRange = isHandInRange(handKey, THREE_BET_BLUFF_RANGE);
+
+    // 位置感知的 3-Bet：位置越靠后，3-Bet 范围越宽
+    const positional3BetBonus = posAdvantage > 0.6 ? 0.25 : 0;  // BTN/CO 多 25% 机会
+
+    // 面对松散玩家的 3-Bet 调整：他们开池范围宽，我们 3-Bet 范围也可以宽
+    const vs3BetLooseAdjust = isTargetLoose ? 0.20 : 0;
+
+    // 提前生成随机数以避免重复调用
+    const rnd = Math.random();
+
+    // ============ Check-Raise 检测 ============
+    // Check-Raise 条件：OOP + 强牌/好听牌 + 对手可能会下注
+    const isOOP = posAdvantage < 0.4;  // 位置不利
+    const canCheckRaise = callAmt === 0 && !isPreflop && isOOP;
+    const isGoodCheckRaiseSpot = canCheckRaise && (
+        winRate > 0.65 ||  // 价值型 check-raise
+        (winRate > 0.40 && winRate < 0.55 && boardTexture > 0.5 && rnd < 0.25)  // 听牌/诈唬型
+    );
+
+    // ============ ICM 感知 ============
+    // 检测游戏阶段的筹码分布
+    const totalChips = ctx.players.reduce((sum, p) => sum + p.chips + p.currentBet, 0);
+    const avgStack = totalChips / ctx.players.filter(p => !p.isEliminated).length;
+    const myStack = player.chips + player.currentBet;
+    const stackRatio = myStack / avgStack;  // 1.0 = 平均筹码
+
+    // 筹码领先时可以更保守，筹码落后时需要更激进
+    const icmAdjustment = stackRatio > 1.5 ? -0.05 : (stackRatio < 0.5 ? 0.10 : 0);
+    const icmAdjustedWinRate = winRate + icmAdjustment;
+
     // 极好底池赔率检测 (Excellent Pot Odds)
     // 当跟注金额相对底池极小时（如对手小额 All In），几乎应该总是跟注
     // 例如：底池 $141，跟注只需 $8 (5.4%)，这种赔率几乎不能弃牌
@@ -189,7 +224,6 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
     let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
     let isBluffing = false;
-    const rnd = Math.random();
 
     // 浅筹码策略：Push or Fold
     if (isShallowStack && isPreflop) {
@@ -231,6 +265,47 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         }
     }
 
+    // ============ 主动 3-Bet 策略 (面对开池加注时) ============
+    if (isFacingRaise && isPreflop && !isFacing3Bet && action === 'fold') {
+        // 位置感知的 3-Bet 范围
+        const base3BetChance = 0.30 + positional3BetBonus + vs3BetLooseAdjust;
+
+        // 价值 3-Bet：用顶级手牌 3-Bet
+        if (isIn3BetValueRange) {
+            action = 'raise';  // 3-Bet for value
+            isBluffing = false;
+        }
+        // Light 3-Bet：用中等偏弱但有阻断效果的手牌 3-Bet
+        else if (isIn3BetBluffRange && rnd < base3BetChance * multiwayBluffPenalty) {
+            // 多人入池时减少 light 3-Bet
+            if (!isMultiwayPot || rnd < 0.15) {
+                action = 'raise';
+                isBluffing = true;
+            }
+        }
+        // Squeeze 策略：当有多人跟注时挤压
+        else if (isMultiwayPot && posAdvantage > 0.6 && winRate > 0.50 && rnd < 0.35) {
+            action = 'raise';  // Squeeze play
+            isBluffing = winRate < 0.60;
+        }
+    }
+
+    // ============ Check-Raise 执行逻辑 ============
+    if (isGoodCheckRaiseSpot && action === 'fold') {
+        // 这里 callAmt === 0，我们选择 check 还是 check-raise
+        // 返回 'call' 表示 check，下一轮如果对手下注我们再 raise
+        // 但目前游戏逻辑不支持延迟 check-raise，所以我们用探测性下注代替
+        if (winRate > 0.65) {
+            // 价值型：直接下注获取价值
+            action = 'raise';
+            isBluffing = false;
+        } else {
+            // 听牌/诈唬型：偶尔下注代表强牌
+            action = 'raise';
+            isBluffing = true;
+        }
+    }
+
     // 面对3-Bet的策略
     if (isFacing3Bet && isPreflop) {
         // 利用个体对手档案：面对松散玩家的 3-Bet 可以更宽松地跟注
@@ -251,8 +326,8 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         }
     }
 
-    // 计算综合调整：Heads Up + 短筹码对手
-    const totalAdjustment = headsUpAdjustment + shortStackAdjustment;
+    // 计算综合调整：Heads Up + 短筹码对手 + ICM
+    const totalAdjustment = headsUpAdjustment + shortStackAdjustment + icmAdjustment;
 
     // A. 极强牌 / 坚果 (Monster)
     if (winRate > 0.85 || (winRate > 0.7 && potOdds > 0.4)) {
@@ -420,10 +495,11 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         }
     }
 
-    // 下注尺寸 (Bet Sizing) 优化
+    // 下注尺寸 (Bet Sizing) 优化 - 增强极化范围策略
     let raiseAmount: number | undefined;
     if (action === 'raise') {
         let betFactor = 0.6; // 默认 60% 底池
+        const isRiver = ctx.stage === 'river';
 
         // 1. 基于胜率的调整
         if (winRate > 0.8) {
@@ -448,11 +524,39 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
             betFactor -= 0.15;  // 深筹码时可以小额试探
         }
 
-        // 4. 超池下注 (Overbet)：极化范围时使用
-        // 只在河牌或强牌时考虑超池
-        const isRiver = ctx.stage === 'river';
-        if (isRiver && winRate > 0.85 && rnd < 0.25) {
-            betFactor = 1.2 + Math.random() * 0.5;  // 120-170% 底池
+        // ============ 河牌极化范围优化 ============
+        if (isRiver) {
+            // 河牌使用极化尺寸策略
+            if (winRate > 0.85) {
+                // 坚果牌：使用超池下注 (Overbet) 最大化价值
+                if (rnd < 0.35) {
+                    betFactor = 1.3 + Math.random() * 0.7;  // 130-200% 底池
+                } else {
+                    betFactor = 0.9 + Math.random() * 0.3;  // 90-120% 底池
+                }
+            } else if (winRate > 0.65) {
+                // 强牌但非坚果：中等尺寸获取价值
+                betFactor = 0.65 + Math.random() * 0.25;  // 65-90% 底池
+            } else if (isBluffing) {
+                // 诈唬：使用与价值下注相同的尺寸 (不可读)
+                // 价值/诈唬比例约 2:1，此处已经是诈唬情况
+                if (rnd < 0.4) {
+                    // 40% 使用大尺寸诈唬 (模仿坚果牌)
+                    betFactor = 1.0 + Math.random() * 0.5;  // 100-150% 底池
+                } else {
+                    // 60% 使用中等尺寸 (模仿强牌)
+                    betFactor = 0.6 + Math.random() * 0.3;  // 60-90% 底池
+                }
+            } else {
+                // 中等牌：小额探测
+                betFactor = 0.35 + Math.random() * 0.15;  // 35-50% 底池
+            }
+        } else {
+            // 非河牌保持原逻辑
+            // 4. 超池下注 (Overbet) 在翻牌/转牌较少使用
+            if (winRate > 0.85 && rnd < 0.15) {
+                betFactor = 1.1 + Math.random() * 0.3;
+            }
         }
 
         // 5. C-Bet 尺寸：通常较小
