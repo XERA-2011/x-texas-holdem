@@ -13,7 +13,7 @@
     "test:super": "npx tsx tests/run-simulation.ts --mode=super",
     "test:unit": "npx tsx tests/run-unit-tests.ts",
     "test:equity": "npx tsx tests/test-win-rate.ts",
-    "test:battle": "npx tsx tests/test-ai-battle.ts"
+    "test:battle": "npx tsx tests/test-ai-battle.ts --games=50 --sims=1000"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

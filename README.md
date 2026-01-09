@@ -28,6 +28,8 @@ pnpm test:normal
 pnpm test:super
 
 # AI 对战模拟 (4 普通 vs 4 超级)
+# 默认: 50场, 1000次模拟
+# 自定义: pnpm test:battle -- --games=100 --sims=2000
 pnpm test:battle
 
 # 单元测试 (牌型评估)

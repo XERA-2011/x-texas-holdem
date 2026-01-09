@@ -6,13 +6,6 @@
 
 import { PokerGameEngine, GAME_RULES, BOT_NAMES } from '../src/lib/poker-engine';
 import type { Player, AIMode } from '../src/lib/poker/types';
-import { makeNormalAIDecision, type AIContext } from '../src/lib/poker/ai-strategy';
-import { makeSuperAIDecision, type SuperAIContext } from '../src/lib/poker/ai-super';
-import { OpponentProfileManager } from '../src/lib/poker/opponent-profiling';
-
-interface PlayerWithMode extends Player {
-    aiMode: AIMode;
-}
 
 interface SimulationResult {
     normalWins: number;
@@ -34,7 +27,6 @@ const INITIAL_CHIPS = GAME_RULES.INITIAL_CHIPS;
  */
 class MixedAIGameEngine extends PokerGameEngine {
     playerModes: Map<number, AIMode> = new Map();
-    mixedOpponentProfiles: OpponentProfileManager = new OpponentProfileManager();
 
     constructor(onChange: (snapshot: any) => void) {
         super(onChange);
@@ -115,8 +107,7 @@ class MixedAIGameEngine extends PokerGameEngine {
             // 2. 找到了活跃玩家
             this.notify();
 
-            // 在测试模式下，不使用 setTimeout 自动调用 AI
-            // 而是等待外部循环调用 aiAction
+            // 在测试模式下，等待外部循环调用 aiAction
             // 所以这里什么都不做，直接返回
             return;
         }
@@ -143,16 +134,19 @@ class MixedAIGameEngine extends PokerGameEngine {
 }
 
 /**
- * 运行单局游戏直到结束
- */
-async function runSingleGame(engine: MixedAIGameEngine, maxRounds: number = 200): Promise<{
+* 运行单局游戏直到结束
+*/
+async function runSingleGame(engine: MixedAIGameEngine, maxRounds: number = 200, sims: number = 1000): Promise<{
     winner: Player | null;
     rounds: number;
 }> {
     engine.resetGameMixed();
-    // 降低配置以加速
+
+    // 设置为 super 模式以开启对手建模数据收集
+    engine.setAIMode('super');
+
     engine.superAIConfig = {
-        monteCarloSims: 800, // 降低模拟次数
+        monteCarloSims: sims,
         opponentModeling: true,
         thinkingDelay: 0
     };
@@ -186,14 +180,10 @@ async function runSingleGame(engine: MixedAIGameEngine, maxRounds: number = 200)
             if (currentPlayer.status === 'active' && !currentPlayer.isHuman) {
                 engine.aiAction(currentPlayer);
             } else if (currentPlayer.status !== 'active') {
-                // 如果遇到非活跃玩家，尝试手动推进（虽然 processTurn 应该处理了）
-                // 但为了保险起见，再次检查
-                // (engine as any).currentTurnIdx = engine.getNextActive((engine as any).currentTurnIdx);
+                // pass
             }
 
             stepCount++;
-            // 移除 await setTimeout 以全速运行，Node.js 事件循环可以处理
-            // 但为了不过度阻塞主线程，每 50 步让渡一次
             if (stepCount % 50 === 0) await new Promise(r => setTimeout(r, 0));
         }
     }
@@ -212,7 +202,7 @@ async function runSingleGame(engine: MixedAIGameEngine, maxRounds: number = 200)
 /**
  * 运行完整模拟
  */
-async function runSimulation(numGames: number): Promise<SimulationResult> {
+async function runSimulation(numGames: number, sims: number): Promise<SimulationResult> {
     const result: SimulationResult = {
         normalWins: 0,
         superWins: 0,
@@ -228,7 +218,7 @@ async function runSimulation(numGames: number): Promise<SimulationResult> {
     console.log(` 普通电脑: ${NORMAL_PLAYER_IDS.length} 个`);
     console.log(` 超级电脑: ${SUPER_PLAYER_IDS.length} 个`);
     console.log(` 模拟场次: ${numGames} 场`);
-    console.log(` AI配置:   800 次模拟/手 (加速模式)`);
+    console.log(` AI配置:   ${sims} 次模拟/手 (加速模式)`);
     console.log(`${'='.repeat(50)}\n`);
 
     const startTime = Date.now();
@@ -238,7 +228,7 @@ async function runSimulation(numGames: number): Promise<SimulationResult> {
         process.stdout.write(`[Game ${i + 1}] Running... `);
 
         const gameStart = Date.now();
-        const { winner, rounds } = await runSingleGame(engine);
+        const { winner, rounds } = await runSingleGame(engine, 200, sims);
         const gameTime = ((Date.now() - gameStart) / 1000).toFixed(1);
 
         if (winner) {
@@ -322,7 +312,10 @@ const args = process.argv.slice(2);
 const numGamesArg = args.find(a => a.startsWith('--games='));
 const numGames = numGamesArg ? parseInt(numGamesArg.split('=')[1]) : 50;
 
-runSimulation(numGames).then(() => {
+const simsArg = args.find(a => a.startsWith('--sims='));
+const sims = simsArg ? parseInt(simsArg.split('=')[1]) : 1000;
+
+runSimulation(numGames, sims).then(() => {
     console.log('\n✅ 模拟测试完成');
 }).catch(e => {
     console.error('模拟测试出错:', e);
