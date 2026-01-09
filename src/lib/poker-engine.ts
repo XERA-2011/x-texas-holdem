@@ -56,6 +56,7 @@ export class PokerGameEngine {
 
   testMode: boolean = false;
   isFastForwarding: boolean = false;
+  isAutoPlayMode: boolean = false;
   private _isDestroyed: boolean = false;
 
   winners: number[] = [];
@@ -89,6 +90,10 @@ export class PokerGameEngine {
 
   destroy() {
     this._isDestroyed = true;
+  }
+
+  setAutoPlayMode(enabled: boolean) {
+    this.isAutoPlayMode = enabled;
   }
 
 
@@ -137,7 +142,24 @@ export class PokerGameEngine {
   startNextRound() {
     if (this._isDestroyed) return;
 
-    // 对局倒数检查
+    // 1. 先进行淘汰判定 (Check for eliminations)
+    this.players.forEach(p => {
+      if (p.chips <= 0) {
+        p.isEliminated = true;
+        p.status = 'eliminated';
+        p.chips = 0; // 确保不为负数
+      }
+    });
+
+    // 2. 检查是否只剩最后一名赢家 (Winner Takes All Mode)
+    const survivors = this.players.filter(p => !p.isEliminated);
+    if (survivors.length <= 1) {
+      this.isSessionComplete = true;
+      this.notify();
+      return;
+    }
+
+    // 3. 局数限制检查
     if (this.roundLimit !== null && this.currentRoundNumber >= this.roundLimit) {
       this.isSessionComplete = true;
       this.notify();
@@ -156,15 +178,6 @@ export class PokerGameEngine {
     this.winners = [];
     this.logs = []; // Clear logs for new round
     this.winningCards = [];
-
-    // Eliminate players with no chips
-    this.players.forEach(p => {
-      if (p.chips <= 0) {
-        p.isEliminated = true;
-        p.status = 'eliminated';
-        p.chips = 0; // 确保不为负数
-      }
-    });
 
     // Rotate dealer
     this.dealerIdx = (this.dealerIdx + 1) % this.players.length;
@@ -532,7 +545,10 @@ export class PokerGameEngine {
         setTimeout(() => {
           if (this._isDestroyed || this.roundId !== currentRoundId) return;
           this.aiAction(p);
-        }, UI_CONSTANTS.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.AI_THINKING_DELAY_VARIANCE);
+        }, this.isAutoPlayMode
+          ? UI_CONSTANTS.FAST.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.FAST.AI_THINKING_DELAY_VARIANCE
+          : UI_CONSTANTS.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.AI_THINKING_DELAY_VARIANCE
+        );
       }
 
     } catch (e: unknown) {
@@ -631,7 +647,10 @@ export class PokerGameEngine {
         player.currentSpeech = undefined;
         this.notify();
       }
-    }, UI_CONSTANTS.SPEECH_DISPLAY_TIME);
+    }, this.isAutoPlayMode
+      ? UI_CONSTANTS.FAST.SPEECH_DISPLAY_TIME
+      : UI_CONSTANTS.SPEECH_DISPLAY_TIME
+    );
 
   }
 
@@ -713,7 +732,6 @@ export class PokerGameEngine {
    */
   getLeaderboard(): { rank: number; player: Player; delta: number }[] {
     const sorted = [...this.players]
-      .filter(p => !p.isEliminated || p.chips > 0) // 包含被淘汰但有筹码的玩家
       .sort((a, b) => b.chips - a.chips);
 
     return sorted.map((player, index) => ({

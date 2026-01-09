@@ -42,6 +42,7 @@ export function usePokerGame() {
       engineRef.current = null;
     }
     setGameState(null);
+    setIsAutoPlay(false);
   }, []);
 
   const humanAction = useCallback((type: 'fold' | 'call' | 'raise' | 'allin', raiseAmount?: number) => {
@@ -75,6 +76,53 @@ export function usePokerGame() {
     return [];
   }, []);
 
+  const [isAutoPlay, setIsAutoPlay] = useState(false);
+
+  const toggleAutoPlay = useCallback(() => {
+    setIsAutoPlay(prev => !prev);
+  }, []);
+
+  // 同步 AutoPlay 状态到引擎 (用于加速 AI 决策)
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setAutoPlayMode(isAutoPlay);
+    }
+  }, [isAutoPlay]);
+
+  // 自动游戏逻辑
+  useEffect(() => {
+    if (!isAutoPlay || !gameState || !engineRef.current) return;
+
+    const engine = engineRef.current;
+    let timer: NodeJS.Timeout;
+
+    // 1. 如果对局结束 (Session Complete) -> 停止自动托管
+    if (gameState.isSessionComplete) {
+      setIsAutoPlay(false);
+      return;
+    }
+
+    // 2. 如果这局结束 (Showdown) -> 自动开始下一局
+    if (gameState.stage === 'showdown') {
+      timer = setTimeout(() => {
+        startNextRound(); // 使用 hook 封装的方法
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+
+    // 3. 如果轮到人类玩家 (且通过 Auto 托管) -> 使用 AI 替身
+    const humanPlayer = gameState.players[0];
+    const isHumanTurn = gameState.currentTurnIdx === 0 && humanPlayer.status === 'active' && !gameState.isSessionComplete;
+
+    if (isHumanTurn) {
+      timer = setTimeout(() => {
+        // 让 AI 接管人类操作
+        engine.aiAction(humanPlayer);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAutoPlay, gameState, startNewSession, startNextRound]);
+
   return {
     gameState,
     startGame,
@@ -84,5 +132,7 @@ export function usePokerGame() {
     resetGame,
     startNewSession,
     getLeaderboard,
+    isAutoPlay,
+    toggleAutoPlay
   };
 }

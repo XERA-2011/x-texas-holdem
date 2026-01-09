@@ -11,6 +11,7 @@ interface ControlsProps {
   onReset?: () => void;
   playerChips: number;
   potSize: number;
+  isAutoPlay?: boolean;
 }
 
 export function GameControls({
@@ -23,7 +24,8 @@ export function GameControls({
   isGameOver,
   onReset,
   playerChips,
-  potSize
+  potSize,
+  isAutoPlay = false
 }: ControlsProps) {
   const [showRaiseOptions, setShowRaiseOptions] = useState(false);
 
@@ -53,7 +55,7 @@ export function GameControls({
     );
   }
 
-  const isDisabled = !isHumanTurn;
+  const isDisabled = !isHumanTurn || isAutoPlay;
 
   // 计算加注选项
   const availableChips = playerChips - callAmount; // 跟注后剩余筹码
@@ -166,6 +168,7 @@ export function GameControls({
             <span className="text-[10px] md:text-xs">{showRaiseOptions ? '▼' : '▲'}</span>
           </button>
         </div>
+
       </div>
     </>
   );
