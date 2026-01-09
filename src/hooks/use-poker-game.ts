@@ -17,6 +17,9 @@ export function usePokerGame() {
   }, []);
 
   const startGame = useCallback((mode: 'normal' | 'super', roundLimit: number | null = 8) => {
+    // 重置自动托管状态
+    setIsAutoPlay(false);
+
     // Clean up existing game if any
     if (engineRef.current) {
       engineRef.current.destroy();
@@ -64,6 +67,9 @@ export function usePokerGame() {
   }, []);
 
   const startNewSession = useCallback(() => {
+    // 重置自动托管状态
+    setIsAutoPlay(false);
+
     if (engineRef.current) {
       engineRef.current.startNewSession();
     }
