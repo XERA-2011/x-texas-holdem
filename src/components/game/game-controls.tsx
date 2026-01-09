@@ -114,7 +114,10 @@ export function GameControls({
 
       <div className="fixed bottom-0 left-0 right-0 p-4 [@media(max-height:500px)]:p-1 bg-white/90 dark:bg-neutral-900/90 border-t border-zinc-200 dark:border-white/10 backdrop-blur md:static md:bg-transparent md:border-none md:p-0 flex justify-between md:justify-center gap-2 sm:gap-4 z-50">
         <button
-          onClick={() => onAction('fold')}
+          onClick={() => {
+            setShowRaiseOptions(false);
+            onAction('fold');
+          }}
           disabled={isDisabled}
           className="flex-1 md:flex-none md:w-[140px] bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-black dark:text-white font-bold h-12 md:h-14 [@media(max-height:700px)]:h-10 [@media(max-height:500px)]:h-8 [@media(max-height:400px)]:h-6 flex items-center justify-center px-1 md:px-2 rounded-lg shadow-lg active:scale-95 transition-all text-sm md:text-lg [@media(max-height:700px)]:text-xs [@media(max-height:500px)]:text-[10px] [@media(max-height:400px)]:text-[9px]"
         >
@@ -122,7 +125,10 @@ export function GameControls({
         </button>
 
         <button
-          onClick={() => onAction('call')}
+          onClick={() => {
+            setShowRaiseOptions(false);
+            onAction('call');
+          }}
           disabled={isDisabled}
           className="flex-1 md:flex-none md:w-[140px] bg-zinc-800 dark:bg-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold h-12 md:h-14 [@media(max-height:700px)]:h-10 [@media(max-height:500px)]:h-8 [@media(max-height:400px)]:h-6 flex items-center justify-center px-1 md:px-2 rounded-lg shadow-lg active:scale-95 transition-all text-sm md:text-lg [@media(max-height:700px)]:text-xs [@media(max-height:500px)]:text-[10px] [@media(max-height:400px)]:text-[9px] whitespace-nowrap"
         >
