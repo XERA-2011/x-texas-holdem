@@ -5,6 +5,7 @@ import type { Player, AIMode } from '@/lib/poker/types';
 
 interface SessionCompleteProps {
     roundLimit: number | null;
+    roundsPlayed: number;
     aiMode: AIMode;
     leaderboard: { rank: number; player: Player; delta: number }[];
     onStartNewSession: () => void;
@@ -13,6 +14,7 @@ interface SessionCompleteProps {
 
 export function SessionComplete({
     roundLimit,
+    roundsPlayed,
     aiMode,
     leaderboard,
     onStartNewSession,
@@ -43,7 +45,7 @@ export function SessionComplete({
                         </h1>
                     </div>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        {roundLimit ? `${roundLimit} 局已完成` : '无限制模式结束'}
+                        {roundLimit ? `${roundLimit} 局已完成` : `无限制模式结束 (共 ${roundsPlayed} 局)`}
                     </p>
                 </div>
 

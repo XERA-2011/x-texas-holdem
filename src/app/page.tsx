@@ -32,6 +32,7 @@ export default function TexasHoldemPage() {
     return (
       <SessionComplete
         roundLimit={gameState.roundLimit}
+        roundsPlayed={gameState.currentRoundNumber}
         aiMode={gameState.aiMode}
         leaderboard={leaderboard}
         onStartNewSession={startNewSession}
