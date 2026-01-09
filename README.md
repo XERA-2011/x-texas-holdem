@@ -4,6 +4,8 @@
 - **Vercel**: [https://x-texas-holdem.vercel.app/](https://x-texas-holdem.vercel.app/)
 - **Cloudflare Pages**: [https://x-texas-holdem.pages.dev/](https://x-texas-holdem.pages.dev/)
 
+> 📱 **体验提示**：本项目已深度适配移动端，推荐使用 **手机浏览器** 访问以获得最佳沉浸式体验。
+
 ### 特性 (Features)
 - **超级电脑模式 (Super AI)**: 集成蒙特卡洛模拟 (Monte Carlo Simulation) 与对手建模，提供 GTO 风格的高难度对战体验。
 - **模式切换**: 游戏内支持一键切换 `普通电脑` / `超级电脑`。
