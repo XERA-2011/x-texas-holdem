@@ -93,8 +93,8 @@ export function getHandStrength(playerHand: Card[], communityCards: Card[]): num
 /**
  * 获取随机发言内容
  */
-export function getRandomSpeech(type: keyof typeof SPEECH_LINES['bot']): string | null {
-    const lines = SPEECH_LINES['bot'][type];
+export function getRandomSpeech(type: keyof typeof SPEECH_LINES['bot'], category: 'bot' | 'super' = 'bot'): string | null {
+    const lines = SPEECH_LINES[category][type];
     if (lines && lines.length > 0) {
         return lines[Math.floor(Math.random() * lines.length)];
     }

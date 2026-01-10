@@ -716,7 +716,8 @@ export class PokerGameEngine {
 
   // 随机发言助手
   speakRandom(player: Player, type: keyof typeof SPEECH_LINES['bot']) {
-    const text = getRandomSpeech(type);
+    const category = this.aiMode === 'super' ? 'super' : 'bot';
+    const text = getRandomSpeech(type, category);
     if (text) {
       this.speak(player, text);
     }

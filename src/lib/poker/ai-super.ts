@@ -311,10 +311,17 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         // 利用个体对手档案：面对松散玩家的 3-Bet 可以更宽松地跟注
         const adjustedThreshold = isTargetLoose ? 0.50 : 0.55;
 
+        // 赔率保护：如果是最小 3-Bet 或者赔率极好，放宽跟注范围
+        const isSmall3Bet = callAmt <= ctx.bigBlind * 3;
+        const isGreatOdds = callCostRatio < 0.25;
+
         // 面对3-Bet时收紧范围
         if (winRate > 0.70) {
             action = rnd < 0.6 ? 'allin' : 'call'; // 4-Bet or Call
         } else if (winRate > adjustedThreshold) {
+            action = 'call';
+        } else if ((isSmall3Bet || isGreatOdds) && winRate > 0.3) {
+            // 防御性跟注：赔率好且牌力尚可（不是垃圾牌）
             action = 'call';
         } else {
             return {

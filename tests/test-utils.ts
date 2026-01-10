@@ -8,6 +8,10 @@ export class ScenarioTester {
     constructor() {
         this.engine = new PokerGameEngine(() => { });
         this.engine.testMode = true;
+        // Disable AI auto-move loop to prevent interference with manual scripts
+        // But save original for manual invocation
+        (this.engine as any)._originalAiAction = this.engine.aiAction.bind(this.engine);
+        this.engine.aiAction = () => { };
     }
 
     log(msg: string) {
@@ -18,7 +22,7 @@ export class ScenarioTester {
     reset() {
         this.engine.resetGame();
         // Force specific names for consistency in scripts
-        const bioNames = ['You', 'Alex', 'Sam', 'Morgan', 'Jamie', 'Avery', 'Blake'];
+        const bioNames = ['You', 'Alex', 'Sam', 'Morgan', 'Jamie', 'Avery', 'Blake', 'Jordan'];
         this.engine.players.forEach((p, i) => {
             if (i < bioNames.length) p.name = bioNames[i];
         });
@@ -190,6 +194,9 @@ export class ScenarioTester {
     async runSuperAITests() {
         this.log("Running Super AI Specific Tests...");
         this.setAIMode('super');
+
+        // Restore AI action for these tests
+        this.engine.aiAction = (this.engine as any)._originalAiAction;
 
         // 降低模拟次数以加快测试速度
         this.engine.superAIConfig.monteCarloSims = 100;
@@ -371,6 +378,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         await tester.runScript([
             { player: 'Morgan', action: 'fold' }, { player: 'Jamie', action: 'fold' },
             { player: 'Avery', action: 'fold' }, { player: 'Blake', action: 'fold' },
+            { player: 'Jordan', action: 'fold' },
             { player: 'You', action: 'fold' }, { player: 'Alex', action: 'fold' }
         ]);
         tester.verifyStage('showdown');
@@ -382,6 +390,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         await tester.runScript([
             { player: 'Morgan', action: 'call' }, { player: 'Jamie', action: 'call' },
             { player: 'Avery', action: 'call' }, { player: 'Blake', action: 'call' },
+            { player: 'Jordan', action: 'call' },
             { player: 'You', action: 'call' }, { player: 'Alex', action: 'call' },
             { player: 'Sam', action: 'call' }
         ]);
@@ -389,7 +398,7 @@ export async function runDebugScenarios(): Promise<string[]> {
             { player: 'Alex', action: 'raise', amount: 50 },
             { player: 'Sam', action: 'fold' }, { player: 'Morgan', action: 'fold' },
             { player: 'Jamie', action: 'fold' }, { player: 'Avery', action: 'fold' },
-            { player: 'Blake', action: 'fold' }, { player: 'You', action: 'fold' }
+            { player: 'Blake', action: 'fold' }, { player: 'Jordan', action: 'fold' }, { player: 'You', action: 'fold' }
         ]);
         tester.verifyStage('showdown');
         tester.log("Passed.");
@@ -400,6 +409,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         await tester.runScript([
             { player: 'Morgan', action: 'fold' }, { player: 'Jamie', action: 'fold' },
             { player: 'Avery', action: 'fold' }, { player: 'Blake', action: 'fold' },
+            { player: 'Jordan', action: 'fold' },
             { player: 'You', action: 'raise', amount: 40 }, { player: 'Alex', action: 'call' },
             { player: 'Sam', action: 'fold' }
         ]);
@@ -435,7 +445,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         // --- Scenario 5 ---
         tester.log("5. All-in Preflop Chaos");
         tester.reset();
-        ['Morgan', 'Jamie', 'Avery', 'Blake', 'You', 'Alex', 'Sam'].forEach(n => tester.act(n, 'allin'));
+        ['Morgan', 'Jamie', 'Avery', 'Blake', 'Jordan', 'You', 'Alex', 'Sam'].forEach(n => tester.act(n, 'allin'));
         await new Promise(r => setTimeout(r, 200));
         tester.verifyStage('showdown');
         tester.log("Passed.");
@@ -444,7 +454,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         tester.log("6. Check Down (Explicit)");
         tester.reset();
         // Check preflop
-        const checkAround = ['Morgan', 'Jamie', 'Avery', 'Blake', 'You', 'Alex', 'Sam'];
+        const checkAround = ['Morgan', 'Jamie', 'Avery', 'Blake', 'Jordan', 'You', 'Alex', 'Sam'];
         // Preflop: SB(1) BB(2) act last-ish. Starts at UTG(Morgan).
         for (const n of checkAround) {
             tester.act(n, 'call');
@@ -452,7 +462,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         }
 
         // Flop, Turn, River - Ordered SB to Dealer
-        const ordered = ['Alex', 'Sam', 'Morgan', 'Jamie', 'Avery', 'Blake', 'You'];
+        const ordered = ['Alex', 'Sam', 'Morgan', 'Jamie', 'Avery', 'Blake', 'Jordan', 'You'];
         const playStreet = async () => {
             for (const n of ordered) {
                 tester.act(n, 'call');
@@ -473,6 +483,12 @@ export async function runDebugScenarios(): Promise<string[]> {
             { name: 'You', chips: 1000, hand: ['As', 'Ks'] },
             { name: 'Alex', chips: 1000, hand: ['Ac', 'Kc'] }
         ], ['Qd', 'Jd', 'Td', '2s', '3s']);
+
+        const pDebugBy = tester.engine.players.find(p => p.name === 'You');
+        const activeCount = tester.engine.players.filter(p => !p.isEliminated).length;
+        const totalSysChips = tester.engine.players.reduce((sum, p) => sum + p.chips + p.currentBet, 0) + tester.engine.pot;
+        tester.log(`DEBUG: Scenario 7 Setup - You Chips: ${pDebugBy?.chips}, Active Players: ${activeCount}, Total System Chips: ${totalSysChips}`);
+
         tester.act('You', 'allin');
         tester.act('Alex', 'allin');
         await new Promise(r => setTimeout(r, 100));
@@ -501,7 +517,7 @@ export async function runDebugScenarios(): Promise<string[]> {
         await playStreet(); // Flop
         await playStreet(); // Turn
         // River
-        for (const n of ['Alex', 'Sam', 'Morgan', 'Jamie', 'Avery', 'Blake']) { // Others check/fold
+        for (const n of ['Alex', 'Sam', 'Morgan', 'Jamie', 'Avery', 'Blake', 'Jordan']) { // Others check/fold
             tester.act(n, 'call');
             await new Promise(r => setTimeout(r, 0));
         }

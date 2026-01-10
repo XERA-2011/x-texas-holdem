@@ -19,7 +19,7 @@ export const BOT_NAMES = [
     '菲尼克斯', '塞奇', '斯凯', '西德尼', '马弗里克', '埃斯', '拉克', '奇普'
 ];
 
-export const SPEECH_LINES: Record<'bot', {
+export const SPEECH_LINES: Record<'bot' | 'super', {
     raise: string[];
     call: string[];
     fold: string[];
@@ -66,6 +66,37 @@ export const SPEECH_LINES: Record<'bot', {
             "看这次谁怕谁!", "感觉到了恐惧吗?", "你真的敢跟吗?", "不加注怎么赢?",
             "这把底牌绝了!", "猜猜我有什么牌?", "别犹豫了，弃牌吧."
         ],
+    },
+    super: {
+        raise: [
+            "根据我的计算，这里必须加注。", "胜率在提升，加注是必然。", "你的范围涵盖不了我的牌。",
+            "这里EV很高，加注。", "从GTO角度看，这里不仅是加注，更是压制。",
+            "利用你的漏洞。", "在这个深度，我有位置优势。", "概率的天平倾向于我。",
+            "这是正期望的操作。", "数据不会说谎。", "你的下注模式已暴露。"
+        ],
+        call: [
+            "赔率合适，跟注。", "你的范围很宽，我可以跟。", "保持底池控制。",
+            "暂时不加注，看看转牌。", "你的诈唬频率过高。", "这手牌有延续性。",
+            "跟注在GTO范围内。", "计算显示跟注有利可图。", "我需要保护我的范围。"
+        ],
+        fold: [
+            "负EV，弃牌。", "不在我的防守范围内。", "这里你只有强牌。", "节省筹码等待更好时机。",
+            "概率上即使中了也是输。", "你的行动表明了强度。", "根据贝叶斯推断，我已落后。",
+            "战略性撤退。", "数据不支持继续。", "这不符合最佳策略。"
+        ],
+        check: [
+            "Check。", "过牌平衡我的范围。", "无需激进，先看牌。", "控制底池大小。",
+            "这里过牌是标准动作。", "等等看。", "收集更多信息。", "保持不可预测性。"
+        ],
+        allin: [
+            "All-in，最大化价值。", "这就是数学的终结。", "此时All-in是最优解。",
+            "你的赢面不足以跟注。", "这是压倒性的优势。", "筹码深度支持全压。",
+            "没有其他选择了，All-in。", "计算完毕，全压。", "接招吧，这是大概率事件。"
+        ],
+        bluff_act: [
+            "在这个牌面，我有坚果优势。", "你的牌力盖不住我。", "这里我的范围比你强。",
+            "这注是为了让你犯错。", "你的动作全是破绽。", "我代表了顶端的范围。"
+        ]
     }
 };
 
@@ -139,20 +170,20 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
 };
 
 export const GAME_RULES = {
-    INITIAL_CHIPS: 1000,
+    INITIAL_CHIPS: 1111,
     SMALL_BLIND: 5,
     BIG_BLIND: 10,
-    MAX_PLAYERS: 7,
+    MAX_PLAYERS: 8,
     LOG_HISTORY_LIMIT: 50,
 };
 
 export const UI_CONSTANTS = {
-    AI_THINKING_DELAY_BASE: 1000,
-    AI_THINKING_DELAY_VARIANCE: 1000,
-    SPEECH_DISPLAY_TIME: 2000,
+    AI_THINKING_DELAY_BASE: 500,
+    AI_THINKING_DELAY_VARIANCE: 500,
+    SPEECH_DISPLAY_TIME: 1000,
     FAST: {
         AI_THINKING_DELAY_BASE: 500,
         AI_THINKING_DELAY_VARIANCE: 500,
-        SPEECH_DISPLAY_TIME: 1000,
+        SPEECH_DISPLAY_TIME: 500,
     }
 };

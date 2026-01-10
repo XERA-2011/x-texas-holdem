@@ -19,15 +19,17 @@ export function GameTable({ players, communityCards, pot, dealerIdx, currentTurn
   // Mobile/Desktop positions
   // Updated aspect ratios for better mobile spacing (taller table)
 
-  // Position config
+  // Position config for 8 players
+  // Layout: P0(bottom) -> P1(bottom-left) -> P2(left) -> P3(top-left) -> P4(top-center) -> P5(top-right) -> P6(right) -> P7(bottom-right)
   const positions = [
-    "bottom-[0%] left-1/2 -translate-x-1/2 translate-y-[25%] z-20", // P0 (You) - Center bottom
-    "bottom-[0%] left-[5%] sm:bottom-[10%] sm:left-[-5%] z-10",       // P1 - Bottom Left
-    "top-[-8%] left-[5%] sm:top-[12%] sm:left-[-5%] z-10",           // P2 - Top Left
-    "top-[-20%] left-[26%] sm:top-[-15%] sm:left-[25%] z-10",         // P3 - Top Left-Center
-    "top-[-20%] right-[26%] sm:top-[-15%] sm:right-[25%] z-10",       // P4 - Top Right-Center
-    "top-[-8%] right-[5%] sm:top-[12%] sm:right-[-5%] z-10",         // P5 - Top Right
-    "bottom-[0%] right-[5%] sm:bottom-[10%] sm:right-[-5%] z-10",     // P6 - Bottom Right
+    "bottom-[0%] left-1/2 -translate-x-1/2 translate-y-[25%] z-20",                          // P0 (You) - 底部中央
+    "bottom-[5%] left-[2%] sm:bottom-[12%] sm:left-[-5%] z-10",                              // P1 - 左下角
+    "top-[25%] left-[-2%] sm:top-[25%] sm:left-[-8%] z-10",                                  // P2 - 左侧中间
+    "top-[-12%] left-[8%] sm:top-[-8%] sm:left-[12%] z-10",                                  // P3 - 顶部左侧
+    "top-[-20%] left-1/2 -translate-x-1/2 z-10",                                             // P4 - 顶部中央
+    "top-[-12%] right-[8%] sm:top-[-8%] sm:right-[12%] z-10",                                // P5 - 顶部右侧
+    "top-[25%] right-[-2%] sm:top-[25%] sm:right-[-8%] z-10",                                // P6 - 右侧中间
+    "bottom-[5%] right-[2%] sm:bottom-[12%] sm:right-[-5%] z-10",                            // P7 - 右下角
   ];
 
   return (
