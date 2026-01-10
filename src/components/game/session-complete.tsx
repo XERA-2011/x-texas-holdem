@@ -36,27 +36,32 @@ export function SessionComplete({
                 <ThemeToggle />
             </div>
 
-            <div className="max-w-2xl w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 p-4 sm:p-8 space-y-4 sm:space-y-6">
-                {/* Title */}
-                <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center gap-3">
-                        <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
-                            {aiMode === 'super' ? '超级电脑 对局结束' : '普通电脑 对局结束'}
-                        </h1>
+            <div className="flex flex-col max-w-2xl w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                {/* Header Section: Title & Table Head */}
+                <div className="flex-none p-4 sm:p-8 pb-2 space-y-4 sm:space-y-6 bg-white dark:bg-zinc-900 z-10">
+                    {/* Title */}
+                    <div className="text-center space-y-2">
+                        <div className="flex items-center justify-center gap-3">
+                            <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                                {aiMode === 'super' ? '超级电脑 对局结束' : '普通电脑 对局结束'}
+                            </h1>
+                        </div>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                            {roundLimit ? `${roundLimit} 局已完成` : `无限制模式结束 (共 ${roundsPlayed} 局)`}
+                        </p>
                     </div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        {roundLimit ? `${roundLimit} 局已完成` : `无限制模式结束 (共 ${roundsPlayed} 局)`}
-                    </p>
-                </div>
 
-                {/* Leaderboard */}
-                <div className="space-y-2">
+                    {/* Table Header */}
                     <div className="grid grid-cols-12 gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
                         <div className="col-span-2 text-center">排名</div>
                         <div className="col-span-4">玩家</div>
                         <div className="col-span-3 text-right">筹码</div>
                         <div className="col-span-3 text-right">变化</div>
                     </div>
+                </div>
+
+                {/* Scrollable List Section */}
+                <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-8 py-2 space-y-2 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-600">
                     {leaderboard.map(({ rank, player, delta }) => (
                         <div
                             key={player.id}
@@ -86,20 +91,22 @@ export function SessionComplete({
                     ))}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                    <button
-                        onClick={onStartNewSession}
-                        className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-lg hover:opacity-80 active:scale-95 transition-all"
-                    >
-                        继续下一轮
-                    </button>
-                    <button
-                        onClick={onExitGame}
-                        className="px-6 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 active:scale-95 transition-all"
-                    >
-                        返回主菜单
-                    </button>
+                {/* Footer Section: Action Buttons */}
+                <div className="flex-none p-4 sm:p-8 pt-4 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 z-10">
+                    <div className="grid grid-cols-2 gap-4">
+                        <button
+                            onClick={onStartNewSession}
+                            className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-lg hover:opacity-80 active:scale-95 transition-all"
+                        >
+                            继续下一轮
+                        </button>
+                        <button
+                            onClick={onExitGame}
+                            className="px-6 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 active:scale-95 transition-all"
+                        >
+                            返回主菜单
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
