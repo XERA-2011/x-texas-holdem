@@ -26,10 +26,6 @@ pnpm test:random
 # 纯粹场景测试 (Preset Scenarios)
 pnpm test:scenarios
 
-# 指定 AI 模式运行随机测试 (Random with Custom AI)
-pnpm test:normal
-pnpm test:super
-
 # AI 对战模拟 (4 普通 vs 4 超级)
 # 默认: 50场, 1000次模拟
 # 自定义: pnpm test:battle -- --games=100 --sims=2000

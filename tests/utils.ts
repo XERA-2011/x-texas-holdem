@@ -649,12 +649,153 @@ export async function runScenarioTests(): Promise<string[]> {
             throw new Error(`Split failed: You=${pYou12.chips}, Parker=${pParker12.chips}`);
         }
 
+        // --- Scenario 13: Same Hand Type Comparison (Flush vs Flush) ---
+        tester.log("13. Same Hand Type Comparison (Flush vs Flush)");
+        tester.setupScenario([
+            { name: 'You', chips: 1000, hand: ['Kh', '2h'] },
+            { name: 'Alex', chips: 1000, hand: ['Qh', '3h'] }
+        ], ['Ah', '9h', '7h', '4c', '5d']); // Board has 3 hearts, both have flush
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        await new Promise(r => setTimeout(r, 100));
 
+        const pYou13 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex13 = tester.engine.players.find(p => p.name === 'Alex')!;
 
-        // --- 14. Super AI Tests ---
+        // You should win: K-high Flush > Q-high Flush
+        if (pYou13.chips === 2000 && pAlex13.chips === 0) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Flush comparison failed: You=${pYou13.chips}, Alex=${pAlex13.chips}`);
+        }
+
+        // --- Scenario 14: Triple Split on Same Pot ---
+        tester.log("14. Triple Split (3 Players Same Hand)");
+        tester.setupScenario([
+            { name: 'You', chips: 300, hand: ['2s', '3s'] },
+            { name: 'Alex', chips: 300, hand: ['2c', '3c'] },
+            { name: 'Sam', chips: 300, hand: ['2d', '3d'] }
+        ], ['Ah', 'Kh', 'Qh', 'Jh', 'Th']); // Royal Flush on board
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        tester.act('Sam', 'allin');
+        await new Promise(r => setTimeout(r, 100));
+
+        const pYou14 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex14 = tester.engine.players.find(p => p.name === 'Alex')!;
+        const pSam14 = tester.engine.players.find(p => p.name === 'Sam')!;
+
+        // All three should split: 300 each
+        if (pYou14.chips === 300 && pAlex14.chips === 300 && pSam14.chips === 300) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Triple split failed: You=${pYou14.chips}, Alex=${pAlex14.chips}, Sam=${pSam14.chips}`);
+        }
+
+        // --- Scenario 15: Straight vs Straight (Higher Wins) ---
+        tester.log("15. Straight vs Straight (Higher Wins)");
+        tester.setupScenario([
+            { name: 'You', chips: 500, hand: ['4s', '3s'] },  // 7-high straight (7-6-5-4-3)
+            { name: 'Alex', chips: 500, hand: ['9c', '8c'] }  // 9-high straight (9-8-7-6-5)
+        ], ['7h', '6d', '5c', '2s', 'Kd']); // Board: 7-6-5
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        await new Promise(r => setTimeout(r, 100));
+
+        const pYou15 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex15 = tester.engine.players.find(p => p.name === 'Alex')!;
+
+        // Alex should win: 9-high straight (9-8-7-6-5) > 7-high straight (7-6-5-4-3)
+        if (pYou15.chips === 0 && pAlex15.chips === 1000) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Straight comparison failed: You=${pYou15.chips}, Alex=${pAlex15.chips}`);
+        }
+
+        // --- Scenario 16: Full House vs Full House (Same Trips, Compare Pair) ---
+        tester.log("16. Full House vs Full House (Same Trips)");
+        tester.setupScenario([
+            { name: 'You', chips: 500, hand: ['Kh', 'Kd'] },   // AAA-KK
+            { name: 'Alex', chips: 500, hand: ['Qh', 'Qd'] }   // AAA-QQ
+        ], ['Ah', 'Ad', 'Ac', '5s', '2c']); // Board: AAA
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        await new Promise(r => setTimeout(r, 100));
+
+        const pYou16 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex16 = tester.engine.players.find(p => p.name === 'Alex')!;
+
+        // You should win: AAA-KK > AAA-QQ
+        if (pYou16.chips === 1000 && pAlex16.chips === 0) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Full House comparison failed: You=${pYou16.chips}, Alex=${pAlex16.chips}`);
+        }
+
+        // --- Scenario 17: Full House vs Full House (Different Trips) ---
+        tester.log("17. Full House vs Full House (Different Trips)");
+        tester.setupScenario([
+            { name: 'You', chips: 500, hand: ['Kh', 'Kd'] },   // KKK-AA
+            { name: 'Alex', chips: 500, hand: ['Qh', 'Qd'] }   // QQQ-AA
+        ], ['Kc', 'Qc', 'As', 'Ad', '2c']); // Board gives both trips
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        await new Promise(r => setTimeout(r, 100));
+
+        const pYou17 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex17 = tester.engine.players.find(p => p.name === 'Alex')!;
+
+        // You should win: KKK-AA > QQQ-AA
+        if (pYou17.chips === 1000 && pAlex17.chips === 0) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Full House trips comparison failed: You=${pYou17.chips}, Alex=${pAlex17.chips}`);
+        }
+
+        // --- Scenario 18: Same Pair Different Kickers ---
+        tester.log("18. Same Pair Different Kickers");
+        tester.setupScenario([
+            { name: 'You', chips: 500, hand: ['Ah', 'Kh'] },   // AA-K-Q-J
+            { name: 'Alex', chips: 500, hand: ['Ac', 'Td'] }   // AA-T-Q-J
+        ], ['Ad', 'Qc', 'Jc', '5s', '2c']); // Board: A-Q-J
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        await new Promise(r => setTimeout(r, 100));
+
+        const pYou18 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex18 = tester.engine.players.find(p => p.name === 'Alex')!;
+
+        // You should win: AA-K-Q-J > AA-T-Q-J (K kicker beats T kicker)
+        if (pYou18.chips === 1000 && pAlex18.chips === 0) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Pair kicker comparison failed: You=${pYou18.chips}, Alex=${pAlex18.chips}`);
+        }
+
+        // --- Scenario 19: Two Pair with Same Pairs, Different Kicker ---
+        tester.log("19. Two Pair Same Pairs Different Kicker");
+        tester.setupScenario([
+            { name: 'You', chips: 500, hand: ['Ah', '5h'] },   // JJ-55-A
+            { name: 'Alex', chips: 500, hand: ['Kc', '5d'] }   // JJ-55-K
+        ], ['Jh', 'Jd', '5c', '2s', '3c']); // Board: JJ-5
+        tester.act('You', 'allin');
+        tester.act('Alex', 'allin');
+        await new Promise(r => setTimeout(r, 100));
+
+        const pYou19 = tester.engine.players.find(p => p.name === 'You')!;
+        const pAlex19 = tester.engine.players.find(p => p.name === 'Alex')!;
+
+        // You should win: JJ-55-A > JJ-55-K
+        if (pYou19.chips === 1000 && pAlex19.chips === 0) {
+            tester.log("Passed.");
+        } else {
+            throw new Error(`Two pair kicker comparison failed: You=${pYou19.chips}, Alex=${pAlex19.chips}`);
+        }
+
+        // --- 20. Super AI Tests ---
         await tester.runSuperAITests();
 
-        // --- 15. Session Reset Test ---
+        // --- 21. Session Reset Test ---
         await tester.testSessionReset();
 
         tester.log("All Scenarios Completed.");
@@ -669,12 +810,10 @@ export async function runScenarioTests(): Promise<string[]> {
 /**
  * 运行指定轮数的随机游戏模拟
  * @param rounds 模拟轮数
- * @param mode AI模式
  */
-export async function runRandomSimulations(rounds: number = 3, mode: 'normal' | 'super' = 'normal'): Promise<string[]> {
+export async function runRandomSimulations(rounds: number = 10): Promise<string[]> {
     const tester = new ScenarioTester();
-    tester.setAIMode(mode);
-    tester.log(`Starting Random Simulations (${rounds} rounds) in ${mode} mode...`);
+    tester.log(`Starting Random Simulations (${rounds} rounds)...`);
 
     try {
         for (let i = 0; i < rounds; i++) {

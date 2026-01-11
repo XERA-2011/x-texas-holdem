@@ -10,8 +10,6 @@
     "lint": "eslint",
     "test:random": "npx tsx tests/test-random.ts",
     "test:scenarios": "npx tsx tests/test-scenarios.ts",
-    "test:normal": "npx tsx tests/test-random.ts --mode=normal",
-    "test:super": "npx tsx tests/test-random.ts --mode=super",
     "test:unit": "npx tsx tests/test-poker-engine.ts",
     "test:equity": "npx tsx tests/test-win-rate.ts",
     "test:battle": "npx tsx tests/test-ai-battle.ts --games=50 --sims=1000"
