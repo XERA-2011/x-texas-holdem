@@ -162,7 +162,7 @@ export function GameControls({
             onClick={handleRaiseClick}
             disabled={isDisabled || !canRaise}
             className={`w-full bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed text-white dark:text-black font-bold h-12 md:h-14 [@media(max-height:700px)]:h-10 [@media(max-height:500px)]:h-8 [@media(max-height:400px)]:h-6 flex items-center justify-center gap-1 px-1 md:px-2 rounded-lg shadow-lg active:scale-95 transition-all text-sm md:text-lg [@media(max-height:700px)]:text-xs [@media(max-height:500px)]:text-[10px] [@media(max-height:400px)]:text-[9px]
-              ${showRaiseOptions ? 'ring-2 ring-blue-500' : ''}`}
+              ${showRaiseOptions ? 'ring-4 ring-zinc-500' : ''}`}
           >
             <span>加注</span>
             <span className="text-[10px] md:text-xs">{showRaiseOptions ? '▼' : '▲'}</span>

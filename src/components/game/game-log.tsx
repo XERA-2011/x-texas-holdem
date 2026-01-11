@@ -43,7 +43,7 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
   }, [logs]);
 
   return (
-    <div className="w-full flex flex-col bg-white/90 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg backdrop-blur-sm shadow-sm">
+    <div className="w-[85%] sm:w-full mx-auto flex flex-col bg-white/90 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg backdrop-blur-sm shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-white/5">
         <span className="text-xs md:text-sm font-bold text-zinc-700 dark:text-gray-400">Game Log</span>
@@ -161,7 +161,7 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
       {/* Log Content */}
       <div
         ref={scrollRef}
-        className="h-16 sm:h-24 overflow-y-auto p-2 font-mono text-xs md:text-sm text-zinc-700 dark:text-gray-300 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
+        className="h-24 sm:h-36 overflow-y-auto p-2 font-mono text-xs md:text-sm text-zinc-700 dark:text-gray-300 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
       >
         {logs.length === 0 && <div className="text-center text-gray-500 italic">Game log...</div>}
         {logs.map((log) => (
