@@ -8,6 +8,14 @@ on:
   # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
+    # 仅在生产代码修改时触发部署
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "next.config.ts"
+      - ".github/workflows/deploy.yml"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
