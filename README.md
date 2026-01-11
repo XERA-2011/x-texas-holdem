@@ -20,13 +20,14 @@ pnpm dev
 
 **模拟测试**
 ```bash
-# 运行 AI 对局模拟 (测试普通 & 超级模式)
-pnpm test:simulation
+# 纯粹随机测试 (Random Simulation)
+pnpm test:random
 
-# 仅测试普通电脑模式
+# 纯粹场景测试 (Preset Scenarios)
+pnpm test:scenarios
+
+# 指定 AI 模式运行随机测试 (Random with Custom AI)
 pnpm test:normal
-
-# 仅测试超级电脑模式
 pnpm test:super
 
 # AI 对战模拟 (4 普通 vs 4 超级)

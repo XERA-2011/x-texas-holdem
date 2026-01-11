@@ -1,4 +1,10 @@
 
+/**
+ * 测试工具库 (Test Utilities)
+ * 
+ * 包含核心的 ScenarioTester 类，用于构建和运行扑克游戏测试场景。
+ * 支持固定脚本动作 (Scenarios) 和随机模拟 (Random Simulations)。
+ */
 import { PokerGameEngine, Card } from '../src/lib/poker-engine';
 
 export class ScenarioTester {
@@ -100,87 +106,132 @@ export class ScenarioTester {
      * 运行一个完全随机的对局场景
      * 用于压力测试和发现潜在的边缘情况
      */
+    /**
+     * 运行一个完全随机的对局场景 (增强版)
+     * 包含详细日志和资金守恒检查
+     */
     async runRandomGame() {
         this.reset();
 
-        // 1. 随机化玩家筹码 (500 - 5000)
+        // 1. Randomize Chips (500 - 5000)
         this.engine.players.forEach(p => {
             p.chips = Math.floor(Math.random() * 4500) + 500;
         });
 
-        this.log(`Starting Random Game with ${this.engine.players.length} players...`);
+        // 2. Capture Initial System State for Integrity Check
+        // Total = Sum(Player Chips) (Pot is 0 at start of round before blinds, but after reset)
+        // Note: reset() calls startNextRound(), which posts blinds immediately.
+        // So we must verify Total = Sum(Chips) + Sum(CurrentBets) + Pot
+        const initialTotal = this.engine.players.reduce((sum, p) => sum + p.chips, 0) + this.engine.pot;
+
+        // Snapshot start chips for net profit calculation
+        const startChips = new Map<number, number>();
+        this.engine.players.forEach(p => startChips.set(p.id, p.chips));
+
+        this.log(`\n=== New Game (Random) | Players: ${this.engine.players.length} | System Chips: ${initialTotal} ===`);
 
         let steps = 0;
-        const maxSteps = 200; // 防止无限循环
+        const maxSteps = 200; // Loop limit
 
-        // 循环直到游戏结束 (showdown 或 只剩一人)
+        // Track stage to print board updates
+        let lastStage = this.engine.stage;
+
         while (this.engine.stage !== 'showdown' && this.engine.winners.length === 0 && steps < maxSteps) {
-            // 检查是否只剩一人（有时引擎状态更新有延迟，双重检查）
+            // Stage Change Logging
+            if (this.engine.stage !== lastStage) {
+                const board = this.engine.communityCards.map(c => c.toString()).join(" ");
+                this.log(`--- Stage: ${this.engine.stage.toUpperCase()} [ ${board} ] Pot: ${this.engine.pot} ---`);
+                lastStage = this.engine.stage;
+            }
+
             const active = this.engine.players.filter(p => !p.isEliminated && p.status !== 'folded');
             if (active.length <= 1) break;
 
             const currentPlayer = this.engine.players[this.engine.currentTurnIdx];
+            if (!currentPlayer || currentPlayer.status !== 'active') break;
 
-            // 如果当前玩家状态不正确，尝试跳过或中断
-            if (!currentPlayer || currentPlayer.status !== 'active') {
-                // 可能是引擎正在处理状态转换
-                break;
-            }
-
-            // 决策逻辑
+            // Decision Logic
             const callAmt = this.engine.highestBet - currentPlayer.currentBet;
             const canRaise = currentPlayer.chips > callAmt;
-
-            // 动作权重
             let action: 'fold' | 'call' | 'raise' | 'allin' = 'call';
             const rand = Math.random();
 
             if (canRaise) {
+                // Slightly weighted towards action
                 if (rand < 0.1) action = 'fold';
                 else if (rand < 0.6) action = 'call';
                 else if (rand < 0.9) action = 'raise';
                 else action = 'allin';
             } else {
-                // 筹码不足以加注，只能 call (allin) 或 fold
                 if (rand < 0.2) action = 'fold';
-                else action = 'call'; // 这里 call 会变成 allin 如果筹码不够
+                else action = 'call';
             }
 
             let amount = 0;
             if (action === 'raise') {
                 const minRaise = this.engine.lastRaiseAmount || this.engine.bigBlind;
-                // 确保不超过拥有的筹码
                 const maxRaise = currentPlayer.chips - callAmt;
-
-                if (maxRaise < minRaise) {
-                    action = 'allin';
-                } else {
-                    // 随机加注额
-                    amount = Math.floor(Math.random() * (maxRaise - minRaise)) + minRaise;
-                }
+                if (maxRaise < minRaise) action = 'allin';
+                else amount = Math.floor(Math.random() * (maxRaise - minRaise)) + minRaise;
             }
 
             try {
+                // Log Action (Simulated)
+                const actMsg = action === 'raise' ? `raises to ${amount}` : action;
+                // this.log(`${currentPlayer.name} ${actMsg}`); // (Optional: too noisy? Let's keep it clean or only significant)
+
                 this.act(currentPlayer.name, action, amount);
+
+                // If action succeeded, log it briefly if it's significant (raise/allin) or just debugging
+                // For "Game Log" feel, we want all actions:
+                this.log(`> ${currentPlayer.name}: ${action} ${amount > 0 ? amount : ''}`);
+
             } catch {
-                // 如果动作非法（例如加注额不对），回退到 Call/Fold
-                try {
-                    this.act(currentPlayer.name, 'call');
-                } catch {
-                    try {
-                        this.act(currentPlayer.name, 'fold');
-                    } catch (e3) {
-                        this.log(`Player ${currentPlayer.name} stuck: ${e3}`);
-                        break;
-                    }
-                }
+                // Fallback Logic
+                try { this.act(currentPlayer.name, 'call'); this.log(`> ${currentPlayer.name}: call (fallback)`); }
+                catch { try { this.act(currentPlayer.name, 'fold'); this.log(`> ${currentPlayer.name}: fold (fallback)`); } catch (e) { break; } }
             }
 
-            await new Promise(r => setTimeout(r, 5));
+            await new Promise(r => setTimeout(r, 0));
             steps++;
         }
 
-        this.log(`Random Game Ended. Stage: ${this.engine.stage}, Steps: ${steps}`);
+        // End of Game Report
+        if (this.engine.stage === 'showdown' || this.engine.winners.length > 0) {
+            const board = this.engine.communityCards.map(c => c.toString()).join(" ");
+            this.log(`\n=== Game Over ===`);
+            this.log(`Board: [ ${board} ]`);
+            this.log(`Winners:`);
+            this.engine.winners.forEach(wId => {
+                const p = this.engine.players.find(pl => pl.id === wId);
+                if (p) {
+                    const old = startChips.get(p.id) || 0;
+                    const delta = p.chips - old;
+                    const sign = delta >= 0 ? '+' : '';
+
+                    const winInfo = p.handDescription ? `(${p.handDescription})` : '(Fold Win)';
+                    this.log(`  🏆 ${p.name} [${sign}${delta}] ${winInfo}`);
+
+                    if (p.hand.length > 0) {
+                        const handStr = p.hand.map(c => c.toString()).join(" ");
+                        this.log(`     Hand: [ ${handStr} ]`);
+                    }
+                }
+            });
+        }
+
+        // Integrity Check
+        const finalTotal = this.engine.players.reduce((sum, p) => sum + p.chips, 0) + this.engine.pot;
+        // Note: Pot should be distributed, so currentBet/Pot might be 0, but if someone hasn't acted next round yet...
+        // Actually, if game ended, verify pot is empty? 
+        // If winners found, pot is distributed.
+        // Let's just check total sum.
+        if (Math.abs(finalTotal - initialTotal) > 1) {
+            this.log(`❌ INTEGRITY FAILURE: Chips changed from ${initialTotal} to ${finalTotal}`);
+            throw new Error(`Chips Integrity Check Failed! Diff: ${finalTotal - initialTotal}`);
+        } else {
+            this.log(`Running Check: Chips Integrity OK (${finalTotal})`);
+        }
     }
     setAIMode(mode: 'normal' | 'super') {
         this.engine.setAIMode(mode);
@@ -367,9 +418,9 @@ export class ScenarioTester {
     }
 }
 
-export async function runDebugScenarios(): Promise<string[]> {
+export async function runScenarioTests(): Promise<string[]> {
     const tester = new ScenarioTester();
-    tester.log("Starting 10 Scenario Tests...");
+    tester.log("Starting Preset Scenario Tests...");
 
     try {
         // --- Scenario 1 ---
@@ -598,12 +649,7 @@ export async function runDebugScenarios(): Promise<string[]> {
             throw new Error(`Split failed: You=${pYou12.chips}, Parker=${pParker12.chips}`);
         }
 
-        // --- Scenario 13: Random Simulations ---
-        tester.log("13. Random Simulations (3 rounds)");
-        for (let i = 0; i < 3; i++) {
-            tester.log(`Random Round ${i + 1}`);
-            await tester.runRandomGame();
-        }
+
 
         // --- 14. Super AI Tests ---
         await tester.runSuperAITests();
@@ -615,6 +661,31 @@ export async function runDebugScenarios(): Promise<string[]> {
     } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
         tester.log(`ERROR: ${errorMessage}`);
+    }
+
+    return tester.logs;
+}
+
+/**
+ * 运行指定轮数的随机游戏模拟
+ * @param rounds 模拟轮数
+ * @param mode AI模式
+ */
+export async function runRandomSimulations(rounds: number = 3, mode: 'normal' | 'super' = 'normal'): Promise<string[]> {
+    const tester = new ScenarioTester();
+    tester.setAIMode(mode);
+    tester.log(`Starting Random Simulations (${rounds} rounds) in ${mode} mode...`);
+
+    try {
+        for (let i = 0; i < rounds; i++) {
+            tester.log(`Random Round ${i + 1} / ${rounds}`);
+            await tester.runRandomGame();
+        }
+        tester.log("Random Simulations Completed.");
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        tester.log(`ERROR: ${errorMessage}`);
+        throw e;
     }
 
     return tester.logs;
