@@ -100,7 +100,7 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
                 text += `Public Cards: [${communityCards.map(c => c.toString()).join(' ')}]\n\n`;
               }
 
-              text += "-- Player Status --\n";
+              text += "-- Player Status (End of Hand) --\n";
               players.forEach(p => {
                 let status: string = p.status;
                 if (p.isEliminated) status = 'Eliminated';

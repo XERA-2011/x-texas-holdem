@@ -389,7 +389,7 @@ export class PokerGameEngine {
 
         this.highestBet = player.currentBet;
         this.raisesInRound++;
-        this.log(`${player.name} 加注到 $${player.currentBet}`, 'action');
+        this.log(`${player.name} 加注至 $${player.currentBet}`, 'action');
         player.hasActed = true;
         break;
       case 'allin':
@@ -399,11 +399,14 @@ export class PokerGameEngine {
         if (player.currentBet > this.highestBet) {
           this.highestBet = player.currentBet;
           this.raisesInRound++;
-          this.log(`${player.name} All In! ($${player.currentBet})`, 'action');
+          this.log(`${player.name} All In! (加注至 $${player.currentBet})`, 'action');
         } else if (player.currentBet === this.highestBet) {
-          this.log(`${player.name} All In (跟注) $${player.currentBet}`, 'action');
+          // 这种情况通常已经被 call 分支覆盖，但以防万一
+          this.log(`${player.name} All In (跟注至 $${player.currentBet})`, 'action');
         } else {
-          this.log(`${player.name} All In (短码) $${player.currentBet}`, 'action');
+          // 短码全压，被视为 Call 但金额不足
+          const added = allInAmt; // 近似
+          this.log(`${player.name} All In (短码跟注 $${added})`, 'action');
         }
         player.hasActed = true;
         break;
@@ -500,6 +503,7 @@ export class PokerGameEngine {
     }
 
     this.actorsLeft = this.players.filter(p => p.status === 'active').length;
+
     if (this.actorsLeft <= 1 && !this.isFastForwarding) {
       this.runRemainingStages();
       return;

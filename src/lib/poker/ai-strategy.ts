@@ -79,8 +79,8 @@ export function getHandStrength(playerHand: Card[], communityCards: Card[]): num
         case HandRankType.STRAIGHT_FLUSH: strength = 1.0; break;
     }
 
-    // 检查同花听牌
-    if (res.rank < HandRankType.FLUSH) {
+    // 检查同花听牌 (仅在河牌之前有效)
+    if (res.rank < HandRankType.FLUSH && communityCards.length < 5) {
         const suitCounts: Record<string, number> = {};
         fullHand.forEach(c => suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1);
         const isFlushDraw = Object.values(suitCounts).some(count => count === 4);
@@ -131,7 +131,25 @@ export function makeNormalAIDecision(player: Player, ctx: AIContext): AIDecision
     const isBigBet = (callAmt > ctx.pot * 0.5) || (callAmt > player.chips * 0.4);
     if (isBigBet) {
         perceivedStrength -= 0.1;
+        // 如果是在河牌圈且面临加注，更加谨慎
+        if (ctx.stage === 'river') {
+            perceivedStrength -= 0.1;
+        }
         if (player.isBluffing) perceivedStrength -= 0.2;
+    }
+
+    // 面对多次加注(Re-Raise)的极度恐惧
+    if (ctx.raisesInRound >= 2) {
+        perceivedStrength -= 0.15;
+        if (ctx.stage === 'river') {
+            perceivedStrength -= 0.1; // 河牌圈面对Re-Raise极度危险
+        }
+    }
+
+    // Two Pair specifically on paired board (heuristic adjustment)
+    // 如果是两对，但在河牌圈面临大注/加注，降低估值 (防止死跟)
+    if (strength === 0.6 && ctx.stage === 'river' && (isBigBet || ctx.raisesInRound >= 1)) {
+        perceivedStrength -= 0.15;
     }
 
     // Progressive All-in Logic
