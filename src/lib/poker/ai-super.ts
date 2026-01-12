@@ -161,9 +161,14 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
     // 偷盲注检测
     // 检测是否处于偷盲场景：翻前 + 位置靠后 + 前面无人加注
-    const isStealPosition = posAdvantage > 0.7; // 按钮位或CO位
+    const isStealPosition = posAdvantage > 0.65; // 稍微放宽偷盲位置定义
     const noRaisersYet = ctx.raisesInRound === 0 && ctx.highestBet <= ctx.bigBlind;
     const isStealScenario = isPreflop && isStealPosition && noRaisersYet;
+
+    // 隔离加注 (Isolation Raise) 场景检测
+    // 前面有 1-3 个平跟者(Limpers)，且我们在有利位置
+    // 目的：加注赶跑弱牌，或者与弱牌单挑
+    const isIsolationScenario = isPreflop && ctx.raisesInRound === 0 && activeOpponentsCount > 1 && callAmt <= ctx.bigBlind && posAdvantage > 0.5;
 
     // ============ 3-Bet / 再加注检测 ============
     const isFacing3Bet = ctx.raisesInRound >= 2;
@@ -222,6 +227,43 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         }
     }
 
+    // ============ 危险牌面感知 (Wet Board & Heavy Action) ============
+    // 检测牌面是否有同花或顺子可能
+    let flushPossible = false;
+    let straightPossible = false;
+    if (!isPreflop) {
+        const suits: Record<string, number> = {};
+        const ranks: number[] = [];
+        ctx.communityCards.forEach(c => {
+            suits[c.suit] = (suits[c.suit] || 0) + 1;
+            // 简单的 rank 记录，实际应用需要更复杂的顺子检测，这里用 boardTexture 辅助
+        });
+        flushPossible = Object.values(suits).some(count => count >= 3);
+        // 如果 boardTexture 极高且 flush 没成，那很可能是顺子面
+        straightPossible = boardTexture > 0.7 && !flushPossible;
+    }
+
+    // 重注定义：Call Amount 很大，或者 Call Amount 占剩余有效筹码比例很高
+    const isHeavyBet = callAmt > ctx.pot * 0.6 || callCostRatio > 0.3;
+    const isOverBet = callAmt > ctx.pot * 1.0;
+    const isAllIn = callAmt >= player.chips * 0.95;
+
+    // 如果面对重注且牌面危险，对非坚果牌进行胜率降级 (WinRate Penalty)
+    let dangerAdjustment = 0;
+    if (!isPreflop && (isHeavyBet || isAllIn)) {
+        // 如果牌面有同花可能 (3 suited)，但我们的胜率（由蒙特卡洛算出）并不是极高
+        // 说明我们可能只是顺子或两对，正在面对同花
+        if (flushPossible) {
+            // 胜率惩罚：如果胜率没有 > 0.85 (非坚果/接近坚果)，则大幅降低跟注意愿
+            // 模拟人类思维： "牌面三张花，他打这么重，我有顺子也不敢接"
+            if (winRate < 0.85) {
+                dangerAdjustment -= 0.15; // 降低 15% 胜率评估
+                if (isOverBet || isAllIn) dangerAdjustment -= 0.10; // 再降 10%
+            }
+        }
+    }
+    const finalWinRate = adjustedWinRate + dangerAdjustment;
+
     let action: 'fold' | 'call' | 'raise' | 'allin' = 'fold';
     let isBluffing = false;
 
@@ -262,6 +304,18 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         if (winRate > stealThreshold || (winRate > 0.20 && rnd < 0.5)) {
             action = 'raise';
             isBluffing = winRate < 0.40;
+        }
+    }
+
+    // ============ 隔离加注 (Isolation Raise) ============
+    // 解决家庭池问题：好牌不平跟，而是加注
+    if (isIsolationScenario && !isShallowStack && action === 'fold') {
+        const isoThreshold = 0.55 - (posAdvantage * 0.1); // 位置越好，隔离门槛越低 (0.45 - 0.55)
+        if (winRate > isoThreshold) {
+            action = 'raise';
+            isBluffing = winRate < 0.5; // 如果只是边缘牌强行隔离，算作半诈唬
+            // 隔离尺度通常大一些：3BB + 1BB per limper
+            // 这里的 raiseAmount 由后续逻辑 unified 处理，但可以标记意图
         }
     }
 
@@ -357,9 +411,14 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         else action = 'allin';
     }
     // C. 边缘牌 / 中等牌 (Marginal)
-    else if (adjustedWinRate > potOdds + 0.05) {
-        if (posAdvantage > 0.6 && rnd < 0.6) action = 'raise';
-        else action = 'call';
+    else if (finalWinRate > potOdds + 0.05) {
+        // 如果面对重注且调整后的胜率虽然高于赔率，但仍然不高（例如 < 0.5），在危险牌面应该弃牌 (Fold Equity 极低)
+        if (dangerAdjustment < 0 && finalWinRate < 0.5 && rnd < 0.7) {
+            action = 'fold'; // 规避风险：Dakota / Skye 修正逻辑
+        } else {
+            if (posAdvantage > 0.6 && rnd < 0.6) action = 'raise';
+            else action = 'call';
+        }
     }
     // D. 听牌 / 弱牌 (Draw / Weak)
     else {

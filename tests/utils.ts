@@ -102,10 +102,7 @@ export class ScenarioTester {
         this.engine.currentTurnIdx = this.engine.players.find(p => p.name === config[0].name)?.id || 0;
     }
 
-    /**
-     * 运行一个完全随机的对局场景
-     * 用于压力测试和发现潜在的边缘情况
-     */
+
     /**
      * 运行一个完全随机的对局场景 (增强版)
      * 包含详细日志和资金守恒检查
@@ -129,6 +126,16 @@ export class ScenarioTester {
         this.engine.players.forEach(p => startChips.set(p.id, p.chips));
 
         this.log(`\n=== New Game (Random) | Players: ${this.engine.players.length} | System Chips: ${initialTotal} ===`);
+
+        // Log Initial Blinds (SB/BB)
+
+        this.engine.players.forEach(p => {
+            if (p.currentBet > 0) {
+                // Determine if it's SB or BB based on amount usually, or just log "posts blind"
+                const type = p.currentBet === this.engine.bigBlind ? 'Big Blind' : 'Small Blind';
+                this.log(`> ${p.name}: posts blind ${p.currentBet} (${type})`);
+            }
+        });
 
         let steps = 0;
         const maxSteps = 200; // Loop limit
@@ -178,7 +185,7 @@ export class ScenarioTester {
             try {
                 // Log Action (Simulated)
                 const actMsg = action === 'raise' ? `raises to ${amount}` : action;
-                // this.log(`${currentPlayer.name} ${actMsg}`); // (Optional: too noisy? Let's keep it clean or only significant)
+
 
                 this.act(currentPlayer.name, action, amount);
 
@@ -222,10 +229,8 @@ export class ScenarioTester {
 
         // Integrity Check
         const finalTotal = this.engine.players.reduce((sum, p) => sum + p.chips, 0) + this.engine.pot;
-        // Note: Pot should be distributed, so currentBet/Pot might be 0, but if someone hasn't acted next round yet...
-        // Actually, if game ended, verify pot is empty? 
-        // If winners found, pot is distributed.
-        // Let's just check total sum.
+
+        // Check total sum.
         if (Math.abs(finalTotal - initialTotal) > 1) {
             this.log(`❌ INTEGRITY FAILURE: Chips changed from ${initialTotal} to ${finalTotal}`);
             throw new Error(`Chips Integrity Check Failed! Diff: ${finalTotal - initialTotal}`);
