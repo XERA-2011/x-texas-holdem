@@ -421,4 +421,56 @@ export class ScenarioTester {
             throw new Error("Failed: Players not reset correctly after startNewSession.");
         }
     }
+
+    /**
+     * 运行一个静态的牌型比对或底池分配测试
+     * 包含: Setup -> All-in (Optional Actions) -> Solve -> Verify Chips
+     */
+    async runStaticScenario(
+        title: string,
+        setup: {
+            players: { name: string, chips: number, hand: string[] }[],
+            board: string[]
+        },
+        actions: { player: string, action: 'fold' | 'call' | 'raise' | 'allin', amount?: number }[] | 'all-in-all',
+        expectedChips: Record<string, number>
+    ) {
+        this.log(title);
+        this.setupScenario(setup.players, setup.board);
+
+        if (actions === 'all-in-all') {
+            const active = this.engine.players.filter(p => !p.isEliminated);
+            for (const p of active) {
+                this.act(p.name, 'allin');
+            }
+        } else {
+            for (const act of actions) {
+                this.act(act.player, act.action, act.amount);
+            }
+        }
+
+        // Wait for potential async state updates if any (simulation only takes minimal time though)
+        await new Promise(r => setTimeout(r, 50));
+
+        // Verify
+        const errors: string[] = [];
+        Object.entries(expectedChips).forEach(([name, expChips]) => {
+            const p = this.engine.players.find(pl => pl.name === name);
+            if (!p) {
+                errors.push(`Player ${name} not found`);
+                return;
+            }
+            // Allow small delta for float calc if any, though engine uses integers mostly? 
+            // Engine pot math sometimes has tiny remainders or float issues if not careful, but usually int.
+            // Strict check:
+            if (p.chips !== expChips) {
+                errors.push(`${name}: expected ${expChips}, got ${p.chips}`);
+            }
+        });
+
+        if (errors.length > 0) {
+            throw new Error(`Scenario Failed: ${errors.join(', ')}`);
+        }
+        this.log("Passed.");
+    }
 }
