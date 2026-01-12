@@ -12,7 +12,8 @@
     "test:scenarios": "npx tsx tests/test-scenarios.ts",
     "test:unit": "npx tsx tests/test-poker-engine.ts",
     "test:equity": "npx tsx tests/test-win-rate.ts",
-    "test:battle": "npx tsx tests/test-ai-battle.ts --games=50 --sims=1000"
+    "test:battle": "npx tsx tests/test-ai-battle.ts --games=50 --sims=1000",
+    "test:training": "npx tsx tests/test-training.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

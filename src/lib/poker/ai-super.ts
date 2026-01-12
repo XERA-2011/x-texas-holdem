@@ -3,7 +3,7 @@
  * 超级电脑决策逻辑 - 蒙特卡洛模拟 + GTO 混合策略
  */
 
-import { SPEECH_LINES } from './constants';
+import { SPEECH_LINES, PREFLOP_HAND_STRENGTH } from './constants';
 import type { Player } from './types';
 import type { Card } from './card';
 import { calculateWinRateMonteCarlo, getPreflopStrength, getHandKey } from './monte-carlo';
@@ -391,23 +391,35 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     const totalAdjustment = headsUpAdjustment + shortStackAdjustment + icmAdjustment;
 
     // A. 极强牌 / 坚果 (Monster)
-    if (winRate > 0.85 || (winRate > 0.7 && potOdds > 0.4)) {
+    // A. 极强牌 / 坚果 (Monster)
+    // Preflop: Use raw strength to avoid multiway penalty dampening aggression
+    const preflopRawStrength = isPreflop ? (PREFLOP_HAND_STRENGTH[getHandKey(player.hand)] || 0.35) : 0;
+
+    const isMonster = isPreflop
+        ? preflopRawStrength >= 0.75  // AA, KK, QQ, JJ, TT (Top 5% hands)
+        : (winRate > 0.85 || (winRate > 0.7 && potOdds > 0.4));
+
+    if (isMonster) {
         // GTO 混合策略：防止被读牌
-        const trapChance = boardTexture < 0.3 ? 0.30 : 0.05;
+        // Preflop monster should almost never limp in multiway, limiting trap to postflop or Heads Up specific
+        const trapChance = isPreflop ? 0.05 : (boardTexture < 0.3 ? 0.30 : 0.05);
         const allinChance = boardTexture < 0.3 ? 0.10 : 0.15;
 
         if (rnd < trapChance && ctx.raisesInRound < 1) {
             action = 'call'; // 慢打/诱捕
-        } else if (rnd < trapChance + allinChance) {
+        } else if (rnd < trapChance + allinChance && !isPreflop) {
+            // Preflop open shoving 100BB is usually bad unless short stacked, handled by short stack logic
             action = 'allin';
         } else {
             action = 'raise';
         }
     }
     // B. 强牌 (Strong) - 应用调整
-    else if (winRate > (0.65 - totalAdjustment)) {
-        if (rnd < 0.70) action = 'raise';
-        else if (rnd < 0.90) action = 'call';
+    else if (isPreflop ? (preflopRawStrength >= 0.60) : (winRate > (0.65 - totalAdjustment))) {
+        // Preflop Strong: 88+, AK, AQ, AJ, KQ, etc.
+        // Action: Mostly Raise
+        if (rnd < 0.85) action = 'raise'; // Increased from 0.70 to 0.85 for Preflop aggression
+        else if (rnd < 0.95) action = 'call';
         else action = 'allin';
     }
     // C. 边缘牌 / 中等牌 (Marginal)

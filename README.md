@@ -36,6 +36,10 @@ pnpm test:unit
 
 # 胜率计算测试 (验证蒙特卡洛算法准确性)
 pnpm test:equity
+
+# AI 训练日志生成 (8 Super AI Self-Play, 10 Rounds)
+# 生成包含 God View (底牌) 的详细对局日志，用于训练分析
+pnpm test:training
 ```
 
 **打包部署**
