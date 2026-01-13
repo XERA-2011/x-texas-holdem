@@ -20,6 +20,9 @@
 ```bash
 # 本地开发 (端口 2011)
 pnpm dev
+
+# 代码检查 (Lint)
+pnpm lint
 ```
 
 **模拟测试**
