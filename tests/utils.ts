@@ -6,6 +6,8 @@
  * 支持固定脚本动作 (Scenarios) 和随机模拟 (Random Simulations)。
  */
 import { PokerGameEngine, Card, Player } from '../src/lib/poker-engine';
+import { getHandDetailedDescription } from '../src/lib/poker/display-helpers'; // Import helper verification
+import { evaluateHand } from '../src/lib/poker/evaluator';
 
 interface TestEngine extends PokerGameEngine {
     _originalAiAction?: (player: Player) => void;
@@ -220,7 +222,21 @@ export class ScenarioTester {
                     const delta = p.chips - old;
                     const sign = delta >= 0 ? '+' : '';
 
-                    const winInfo = p.handDescription ? `(${p.handDescription})` : '(Fold Win)';
+                    // STRESS TEST: Verify getHandDetailedDescription functionality explicitly
+                    // This ensures random hands don't crash the description generator
+                    let descObjStr = "";
+                    try {
+                        // Re-evaluate to get the raw result object needed for helper
+                        const evalResult = evaluateHand([...p.hand, ...this.engine.communityCards]);
+                        descObjStr = getHandDetailedDescription(evalResult);
+                    } catch (e) {
+                        const err = e instanceof Error ? e.message : String(e);
+                        this.log(`❌ CRITICAL FAILURE in getHandDetailedDescription: ${err}`);
+                        this.log(`   Hand: ${p.hand.map(c => c.toString())}, Board: ${this.engine.communityCards.map(c => c.toString())}`);
+                        throw e; // Fail the test immediately
+                    }
+
+                    const winInfo = descObjStr ? `(${descObjStr})` : '(Fold Win)';
                     this.log(`  🏆 ${p.name} [${sign}${delta}] ${winInfo}`);
 
                     if (p.hand.length > 0) {

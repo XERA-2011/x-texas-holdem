@@ -38,7 +38,7 @@ export function getRankName(rank: HandRankType): string {
  */
 export function getHandDetailedDescription(result: HandResult): string {
     const rank = result.rank;
-    const cards = result.winningCards;
+    const cards = result.bestHand || result.winningCards;
 
     // 获取格式化等级的助手
     const r = (i: number) => cards[i].rank;

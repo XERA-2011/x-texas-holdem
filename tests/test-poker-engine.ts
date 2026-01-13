@@ -1,6 +1,7 @@
 
 import { Card } from '../src/lib/poker/card';
 import { evaluateHand } from '../src/lib/poker/evaluator';
+import { getHandDetailedDescription } from '../src/lib/poker/display-helpers';
 import { HandRankType } from '../src/lib/poker/types';
 
 // Simple Assertion Helper
@@ -120,6 +121,7 @@ async function runTests() {
         assert(res.rank === HandRankType.HIGH_CARD, "Should be High Card");
     });
 
+
     test("Best 5 out of 7", () => {
         // Board: Ah Kh Qh Jh 2c
         // Hand: Th 2d
@@ -128,6 +130,25 @@ async function runTests() {
         const hand = parseCards("Ah Kh Qh Jh 2c Th 2d");
         const res = evaluateHand(hand);
         assert(res.rank === HandRankType.STRAIGHT_FLUSH, "Should pick Royal Flush over Pair/TwoPair");
+    });
+
+    test("Hand Description: High Card (Fix Check)", () => {
+        // High Card A, K kickers
+        const hand = parseCards("Ah Kd Qs Js 9h");
+        const res = evaluateHand(hand);
+        const desc = getHandDetailedDescription(res);
+        // Should not throw error
+        assert(desc.includes("High Card") || desc.includes("高牌"), "Should contain High Card/高牌 text");
+        assert(desc.includes("High") || desc.includes("A") || desc.includes("高牌"), "Should contain description details");
+    });
+
+    test("Hand Description: Pair (Fix Check)", () => {
+        // Pair of Aces
+        const hand = parseCards("Ah Ad Kc Qs 2h");
+        const res = evaluateHand(hand);
+        const desc = getHandDetailedDescription(res);
+        // Should not throw error accessing 3rd/4th kicker
+        assert(desc.includes("Pair") || desc.includes("对子"), "Should contain Pair/对子 text");
     });
 
     console.log("=================================");
@@ -141,3 +162,4 @@ async function runTests() {
 }
 
 runTests();
+
