@@ -24,7 +24,6 @@ export function GameControls({
   isGameOver,
   onReset,
   playerChips,
-  potSize,
   isAutoPlay = false
 }: ControlsProps) {
   const [showRaiseOptions, setShowRaiseOptions] = useState(false);

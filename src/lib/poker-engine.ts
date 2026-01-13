@@ -57,7 +57,7 @@ export class PokerGameEngine {
   testMode: boolean = false;
   isFastForwarding: boolean = false;
   isAutoPlayMode: boolean = false;
-  private _isDestroyed: boolean = false;
+  protected _isDestroyed: boolean = false;
 
   winners: number[] = [];
   winningCards: Card[] = [];
@@ -294,7 +294,7 @@ export class PokerGameEngine {
     // 3. 边池与分池分配逻辑
 
     try {
-      const allContributors = [...activePlayers, ...foldedPlayers];
+      // const allContributors = [...activePlayers, ...foldedPlayers];
 
       const distributionResult = calculatePotDistribution(
         activePlayers,

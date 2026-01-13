@@ -5,7 +5,7 @@
 
 import { SPEECH_LINES } from './constants';
 import { evaluateHand } from './evaluator';
-import { HandRankType, type Player, type GameLog } from './types';
+import { HandRankType, type Player } from './types';
 import type { Card } from './card';
 
 /** 游戏状态上下文，用于 AI 决策 */
@@ -230,7 +230,7 @@ export function makeNormalAIDecision(player: Player, ctx: AIContext): AIDecision
     }
 
     // 计算加注金额
-    let raiseAmount = ctx.bigBlind * (Math.floor(Math.random() * 3) + 1);
+    const raiseAmount = ctx.bigBlind * (Math.floor(Math.random() * 3) + 1);
 
     // 确定发言类型
     const speakChance = 0.4;

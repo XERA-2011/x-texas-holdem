@@ -191,7 +191,7 @@ function generateCardsFromKey(
     const isSuited = handKey.length === 3 && handKey[2] === 's';
     const isPair = rank1 === rank2;
 
-    const availableSuits = SUITS.filter(s => true); // 复制数组
+    const availableSuits = SUITS.slice(); // 复制数组
 
     if (isPair) {
         // 对子：选择两个不同花色
