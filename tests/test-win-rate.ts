@@ -1,5 +1,5 @@
 import { Card } from '../src/lib/poker/card';
-import { calculateWinRateMonteCarlo, getPreflopStrength, getHandKey } from '../src/lib/poker/monte-carlo';
+import { calculateWinRateMonteCarlo, getPreflopStrength } from '../src/lib/poker/monte-carlo';
 
 /**
  * 胜率计算测试器

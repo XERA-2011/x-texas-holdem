@@ -6,7 +6,8 @@
 import { SUITS, RANKS, PREFLOP_HAND_STRENGTH } from './constants';
 import { Card } from './card';
 import { evaluateHand } from './evaluator';
-import type { Player, SuperAIConfig } from './types';
+// import type { SuperAIConfig } from './types';
+import { sampleHandFromRange } from './hand-ranges';
 
 /**
  * 获取手牌的标准 Key (用于查表)
@@ -157,7 +158,7 @@ export function calculateWinRateWithRange(
     if (opponentRanges.length === 0) return 1.0;
 
     // 引入范围采样模块
-    const { sampleHandFromRange, STANDARD_RANGE } = require('./hand-ranges');
+    // const { sampleHandFromRange, STANDARD_RANGE } = require('./hand-ranges');
 
     let wins = 0;
     let ties = 0;

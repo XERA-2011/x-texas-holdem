@@ -11,7 +11,11 @@
  */
 
 import { ScenarioTester } from './utils';
-import { Player, GAME_RULES } from '../src/lib/poker-engine';
+import { Player, GAME_RULES, PokerGameEngine } from '../src/lib/poker-engine';
+
+interface TestEngine extends PokerGameEngine {
+    _originalAiAction?: (player: Player) => void;
+}
 
 /**
  * 运行训练用对局
@@ -86,7 +90,7 @@ async function runFullAiGame(tester: ScenarioTester) {
             break;
         }
 
-        const originalAI = (engine as any)._originalAiAction;
+        const originalAI = (engine as TestEngine)._originalAiAction;
         if (originalAI) {
             await executeTurnWithSuperAI(tester, currentPlayer);
         } else {
@@ -130,16 +134,16 @@ async function runFullAiGame(tester: ScenarioTester) {
 async function executeTurnWithSuperAI(tester: ScenarioTester, player: Player) {
     const engine = tester.engine;
     const oldStage = engine.stage;
-    const prevBet = player.currentBet;
+    // const prevBet = player.currentBet;
     const previousHighestBet = engine.highestBet; // Capture state BEFORE action
 
     // Use Engine's internal AI logic retrieval
-    const runAI = (engine as any)._originalAiAction;
+    const runAI = (engine as TestEngine)._originalAiAction;
     if (runAI) {
         // Mock setTimeout to force synchronous execution for AI logic
         const originalTimeout = global.setTimeout;
-        // @ts-ignore
-        global.setTimeout = (fn: any, ms: any) => fn();
+
+        global.setTimeout = ((fn: () => void) => fn()) as unknown as typeof global.setTimeout;
 
         try {
             runAI.call(engine, player);

@@ -5,7 +5,11 @@
  * 包含核心的 ScenarioTester 类，用于构建和运行扑克游戏测试场景。
  * 支持固定脚本动作 (Scenarios) 和随机模拟 (Random Simulations)。
  */
-import { PokerGameEngine, Card } from '../src/lib/poker-engine';
+import { PokerGameEngine, Card, Player } from '../src/lib/poker-engine';
+
+interface TestEngine extends PokerGameEngine {
+    _originalAiAction?: (player: Player) => void;
+}
 
 export class ScenarioTester {
     engine: PokerGameEngine;
@@ -16,7 +20,7 @@ export class ScenarioTester {
         this.engine.testMode = true;
         // Disable AI auto-move loop to prevent interference with manual scripts
         // But save original for manual invocation
-        (this.engine as any)._originalAiAction = this.engine.aiAction.bind(this.engine);
+        (this.engine as TestEngine)._originalAiAction = this.engine.aiAction.bind(this.engine);
         this.engine.aiAction = () => { };
     }
 
@@ -184,7 +188,7 @@ export class ScenarioTester {
 
             try {
                 // Log Action (Simulated)
-                const actMsg = action === 'raise' ? `raises to ${amount}` : action;
+                // const actMsg = action === 'raise' ? `raises to ${amount}` : action;
 
 
                 this.act(currentPlayer.name, action, amount);
@@ -196,7 +200,7 @@ export class ScenarioTester {
             } catch {
                 // Fallback Logic
                 try { this.act(currentPlayer.name, 'call'); this.log(`> ${currentPlayer.name}: call (fallback)`); }
-                catch { try { this.act(currentPlayer.name, 'fold'); this.log(`> ${currentPlayer.name}: fold (fallback)`); } catch (e) { break; } }
+                catch { try { this.act(currentPlayer.name, 'fold'); this.log(`> ${currentPlayer.name}: fold (fallback)`); } catch { break; } }
             }
 
             await new Promise(r => setTimeout(r, 0));
@@ -252,7 +256,10 @@ export class ScenarioTester {
         this.setAIMode('super');
 
         // Restore AI action for these tests
-        this.engine.aiAction = (this.engine as any)._originalAiAction;
+        const original = (this.engine as TestEngine)._originalAiAction;
+        if (original) {
+            this.engine.aiAction = original;
+        }
 
         // 降低模拟次数以加快测试速度
         this.engine.superAIConfig.monteCarloSims = 100;

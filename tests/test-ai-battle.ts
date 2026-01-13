@@ -4,7 +4,7 @@
  * 统计各自胜率
  */
 
-import { PokerGameEngine, GAME_RULES, BOT_NAMES } from '../src/lib/poker-engine';
+import { PokerGameEngine, GAME_RULES, BOT_NAMES, Deck } from '../src/lib/poker-engine';
 import type { Player, AIMode } from '../src/lib/poker/types';
 
 interface SimulationResult {
@@ -28,7 +28,7 @@ const INITIAL_CHIPS = GAME_RULES.INITIAL_CHIPS;
 class MixedAIGameEngine extends PokerGameEngine {
     playerModes: Map<number, AIMode> = new Map();
 
-    constructor(onChange: (snapshot: any) => void) {
+    constructor(onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void) {
         super(onChange);
     }
 
@@ -36,7 +36,7 @@ class MixedAIGameEngine extends PokerGameEngine {
      * 重置游戏，初始化混合 AI 玩家
      */
     resetGameMixed() {
-        if ((this as any)._isDestroyed) return;
+        if (this._isDestroyed) return;
         this.players = [];
         this.logs = [];
         this.playerModes.clear();
@@ -65,28 +65,28 @@ class MixedAIGameEngine extends PokerGameEngine {
             this.playerModes.set(i, aiMode);
         }
 
-        (this as any).deck = new (require('../src/lib/poker/card').Deck)();
+        this.deck = new Deck();
         this.communityCards = [];
         this.pot = 0;
-        (this as any).dealerIdx = -1;
+        this.dealerIdx = -1;
         this.highestBet = 0;
-        (this as any).stage = 'preflop';
-        (this as any).actorsLeft = 0;
-        (this as any).raisesInRound = 0;
-        (this as any).currentTurnIdx = 0;
-        (this as any).winners = [];
-        (this as any).winningCards = [];
+        this.stage = 'preflop';
+        this.actorsLeft = 0;
+        this.raisesInRound = 0;
+        this.currentTurnIdx = 0;
+        this.winners = [];
+        this.winningCards = [];
     }
 
     /**
      * 覆写 processTurn 以支持同步执行 (移除 setTimeout)
      */
     processTurn() {
-        if ((this as any)._isDestroyed) return;
+        if (this._isDestroyed) return;
 
         // 循环直到找到需要行动的活跃玩家，或者切换阶段
         while (true) {
-            const currentTurnIdx = (this as any).currentTurnIdx;
+            const currentTurnIdx = this.currentTurnIdx;
             const p = this.players[currentTurnIdx];
 
             if (!p) return;
@@ -98,7 +98,7 @@ class MixedAIGameEngine extends PokerGameEngine {
                     return; // 切换阶段后会重新调用 processTurn，这里直接返回
                 } else {
                     // 移动到下一个玩家
-                    (this as any).currentTurnIdx = this.getNextActive(currentTurnIdx);
+                    this.currentTurnIdx = this.getNextActive(currentTurnIdx);
                     // 继续循环
                     continue;
                 }
@@ -172,8 +172,8 @@ async function runSingleGame(engine: MixedAIGameEngine, maxRounds: number = 200,
         let stepCount = 0;
         const maxSteps = 200; // 增加最大步数防止提前跳出
 
-        while ((engine as any).stage !== 'showdown' && stepCount < maxSteps) {
-            const currentPlayer = engine.players[(engine as any).currentTurnIdx];
+        while (engine.stage !== 'showdown' && stepCount < maxSteps) {
+            const currentPlayer = engine.players[engine.currentTurnIdx];
 
             if (!currentPlayer) break;
 
