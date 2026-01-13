@@ -1,4 +1,4 @@
-# X-TEXAS-HOLDEM ♠️
+# X-TEXAS-HOLDEM ♥️♠️♦️♣️
 
 A lightweight, single-player Texas Hold'em game powered by advanced AI. No download required.
 
