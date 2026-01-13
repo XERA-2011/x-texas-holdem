@@ -20,38 +20,40 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // Mono font is only used in game logs, not initially visible.
+  // disable preload to avoid "preloaded but not used" warning.
+  preload: false,
 });
 
 export const metadata: Metadata = {
-  title: "单机德州扑克 | 摸鱼神器 | 挑战AI",
-  description: "专门为上班族打造的摸鱼神器！无需下载、无需登录、即点即玩。免费单机德州扑克，随时暂停，挑战智能AI，体验纯粹的博弈乐趣。",
+  title: "Texas Hold'em | AI Challenge",
+  description: "The ultimate Texas Hold'em experience for quick breaks! No download, no login, just play. Offline, free, and challenging AI opponents. Enjoy pure poker fun anytime, anywhere.",
   keywords: [
-    '单机德州扑克',
-    '上班摸鱼',
-    '摸鱼游戏',
-    '德州扑克',
     'Texas Hold\'em',
-    '免费扑克',
-    '人机对战',
-    '无需下载',
-    '网页游戏',
+    'Offline Poker',
+    'Free Poker',
     'Poker AI',
-    '摸鱼神器'
+    'Single Player Poker',
+    'No Download Poker',
+    'Browser Game',
+    'Play Poker Against Computer',
+    '德州扑克', // Keep a few major keywords in Chinese for bilingual reach
+    '单机德州'
   ],
   authors: [{ name: 'XERA' }],
   creator: 'XERA',
   metadataBase: new URL('https://xera-2011.github.io/x-texas-holdem'),
   openGraph: {
-    title: "上班摸鱼神器 - 单机德州扑克",
-    description: "老板来了也不怕！极致轻量，随时暂停。来一把紧张刺激的德州扑克，挑战高智商AI。",
+    title: "Texas Hold'em - Play Offline Against AI",
+    description: "No boss, no pressure. Ultra-lightweight, pause anytime. Challenge high-IQ AI in a tense Texas Hold'em battle.",
     type: 'website',
-    locale: 'zh_CN',
-    siteName: '单机德州扑克',
+    locale: 'en_US', // Changed to en_US for global default
+    siteName: "Texas Hold'em Offline",
   },
   twitter: {
     card: 'summary_large_image',
-    title: "单机德州扑克 | 上班摸鱼首选",
-    description: "无需下载，打开即玩。挑战智能AI，享受纯粹扑克乐趣。",
+    title: "Texas Hold'em | Play Instantly",
+    description: "No download required. Challenge smart AI opponents in this free offline poker game.",
   },
   robots: {
     index: true,
@@ -77,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
