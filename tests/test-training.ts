@@ -17,6 +17,15 @@ interface TestEngine extends PokerGameEngine {
     _originalAiAction?: (player: Player) => void;
 }
 
+interface PlayerStats {
+    name: string;
+    handsPlayed: number;
+    vpipCount: number;
+    pfrCount: number;
+    wins: number;
+    chipsDelta: number;
+}
+
 /**
  * 运行训练用对局
  * @param rounds 游戏轮数
@@ -28,6 +37,9 @@ export async function runTrainingGames(rounds: number = 10): Promise<void> {
     tester.log(`Mode: 8 x Super AI (Self-Play)`);
     tester.log(`Timestamp: ${new Date().toISOString()}`);
 
+    // Initialize stats
+    const statsMap = new Map<string, PlayerStats>();
+
     try {
         for (let i = 0; i < rounds; i++) {
             tester.log(`\n-----------------------------------`);
@@ -35,10 +47,37 @@ export async function runTrainingGames(rounds: number = 10): Promise<void> {
             tester.log(`-----------------------------------`);
 
             tester.reset();
-            await runFullAiGame(tester);
+
+            // Ensure stats entries exist
+            tester.engine.players.forEach(p => {
+                if (!statsMap.has(p.name)) {
+                    statsMap.set(p.name, {
+                        name: p.name,
+                        handsPlayed: 0,
+                        vpipCount: 0,
+                        pfrCount: 0,
+                        wins: 0,
+                        chipsDelta: 0
+                    });
+                }
+            });
+
+            await runFullAiGame(tester, statsMap);
         }
 
         tester.log(`\n=== Training Session Completed ===`);
+
+        // Output JSON Stats
+        const report = Array.from(statsMap.values()).map(s => ({
+            ...s,
+            vpip: s.handsPlayed > 0 ? (s.vpipCount / s.handsPlayed).toFixed(2) : "0.00",
+            pfr: s.handsPlayed > 0 ? (s.pfrCount / s.handsPlayed).toFixed(2) : "0.00",
+            winRate: s.handsPlayed > 0 ? (s.wins / s.handsPlayed).toFixed(2) : "0.00"
+        }));
+
+        console.log("\n[STATS_JSON_START]");
+        console.log(JSON.stringify(report, null, 2));
+        console.log("[STATS_JSON_END]");
 
     } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
@@ -50,7 +89,7 @@ export async function runTrainingGames(rounds: number = 10): Promise<void> {
 /**
  * 运行一局完整的 AI 对战
  */
-async function runFullAiGame(tester: ScenarioTester) {
+async function runFullAiGame(tester: ScenarioTester, statsMap: Map<string, PlayerStats>) {
     const engine = tester.engine;
 
     // Ensure Super AI Mode
@@ -76,6 +115,9 @@ async function runFullAiGame(tester: ScenarioTester) {
         .join('  ');
     tester.log(`Hole Cards: ${handsLog}`);
 
+    // Track VPIP/PFR for this hand
+    const playerActions = new Map<string, Set<string>>(); // player -> Set<'vpip' | 'pfr'>
+
     let steps = 0;
     const MAX_STEPS = 100; // 防止死循环
 
@@ -92,7 +134,7 @@ async function runFullAiGame(tester: ScenarioTester) {
 
         const originalAI = (engine as TestEngine)._originalAiAction;
         if (originalAI) {
-            await executeTurnWithSuperAI(tester, currentPlayer);
+            await executeTurnWithSuperAI(tester, currentPlayer, playerActions);
         } else {
             tester.log("Error: AI Action not available");
             break;
@@ -101,6 +143,22 @@ async function runFullAiGame(tester: ScenarioTester) {
         steps++;
         await new Promise(r => setTimeout(r, 0)); // Yield
     }
+
+    // Update Stats at end of game
+    engine.players.forEach(p => {
+        const stats = statsMap.get(p.name);
+        if (stats && !p.isEliminated) { // Only count if player was in the hand (not eliminated before)
+            // Simplified: Assume all non-eliminated players "played" the hand if they were dealt cards
+            // Correct logic: Everyone dealt cards increments handsPlayed
+            stats.handsPlayed++;
+
+            const actions = playerActions.get(p.name);
+            if (actions) {
+                if (actions.has('vpip')) stats.vpipCount++;
+                if (actions.has('pfr')) stats.pfrCount++;
+            }
+        }
+    });
 
     // Game Over Log
     if (engine.stage === 'showdown' || engine.winners.length > 0) {
@@ -111,6 +169,15 @@ async function runFullAiGame(tester: ScenarioTester) {
         if (engine.winners.length > 0) {
             const winnerNames = engine.winners.map(id => engine.players.find(p => p.id === id)?.name).join(", ");
             tester.log(`Winners: ${winnerNames}`);
+
+            // Update Win Stats
+            engine.winners.forEach(id => {
+                const winner = engine.players.find(p => p.id === id);
+                if (winner) {
+                    const s = statsMap.get(winner.name);
+                    if (s) s.wins++;
+                }
+            });
         }
 
         // Detailed Chip Changes and Winners
@@ -119,6 +186,11 @@ async function runFullAiGame(tester: ScenarioTester) {
             const start = startChips.get(p.name) || 0;
             const end = p.chips;
             const diff = end - start;
+
+            // Update Chip Stats
+            const s = statsMap.get(p.name);
+            if (s) s.chipsDelta += diff;
+
             const sign = diff >= 0 ? '+' : '';
             if (diff !== 0) {
                 const handDesc = p.handDescription ? ` - ${p.handDescription}` : '';
@@ -131,10 +203,13 @@ async function runFullAiGame(tester: ScenarioTester) {
 /**
  * 模拟单步 AI 决策并执行
  */
-async function executeTurnWithSuperAI(tester: ScenarioTester, player: Player) {
+async function executeTurnWithSuperAI(
+    tester: ScenarioTester,
+    player: Player,
+    playerActions: Map<string, Set<string>>
+) {
     const engine = tester.engine;
     const oldStage = engine.stage;
-    // const prevBet = player.currentBet;
     const previousHighestBet = engine.highestBet; // Capture state BEFORE action
 
     // Use Engine's internal AI logic retrieval
@@ -142,7 +217,6 @@ async function executeTurnWithSuperAI(tester: ScenarioTester, player: Player) {
     if (runAI) {
         // Mock setTimeout to force synchronous execution for AI logic
         const originalTimeout = global.setTimeout;
-
         global.setTimeout = ((fn: () => void) => fn()) as unknown as typeof global.setTimeout;
 
         try {
@@ -152,32 +226,40 @@ async function executeTurnWithSuperAI(tester: ScenarioTester, player: Player) {
         }
     }
 
-    // Capture Action Log
+    // Capture Action Log & Update Stats
     const amount = player.currentBet;
     let actionType = 'call';
     let actionDesc = '';
+
+    // Initialize actions set for player if not exists
+    if (!playerActions.has(player.name)) {
+        playerActions.set(player.name, new Set());
+    }
+    const actions = playerActions.get(player.name)!;
 
     if (player.status === 'folded') {
         actionType = 'fold';
     } else if (player.status === 'allin') {
         actionType = 'allin';
         actionDesc = `(Total ${amount})`;
-    } else {
-        // Logic to determine Raise vs Call
-        // If my new bet is STRICTLY GREATER than the previous highest bet on the table, I raised.
-        // Note: previousHighestBet includes the big blind, etc.
+        actions.add('vpip'); // All-in counts as VPIP
+        // If raised (all-in raise), check below logic via raise amount, but generally all-in is strong
+        if (amount > previousHighestBet && engine.stage === 'preflop') actions.add('pfr');
 
+    } else {
         if (amount > previousHighestBet) {
             actionType = 'raise';
             actionDesc = `(to ${amount})`;
+            actions.add('vpip');
+            if (engine.stage === 'preflop') actions.add('pfr');
         } else {
-            // Amount <= previousHighestBet
-            // Usually Amount == previousHighestBet for a call.
             if (amount === 0 && previousHighestBet === 0) {
                 actionType = 'check';
+                // Check is NOT VPIP
             } else {
                 actionType = 'call';
                 actionDesc = `(${amount})`;
+                if (amount > 0) actions.add('vpip'); // Calling a bet is VPIP
             }
         }
     }

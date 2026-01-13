@@ -84,44 +84,61 @@ export function calculateWinRateMonteCarlo(
     }
 
     // 3. 开始模拟
+    // 3. 开始模拟
+    const needed = (5 - communityCards.length) + activeOpponentsCount * 2;
+
+    // Reuse arrays to reduce GC
+    const simCommunity = new Array(5);
+    // simOpponentHands will be created fresh or reused? 
+    // Reusing a flat array for opponent cards might be faster but evaluateHand takes array.
+    // Let's stick to array creation for hands as clarity > extreme opt for now, but optimize shuffle.
+
     for (let i = 0; i < simulations; i++) {
-        // 洗牌 (Fisher-Yates on a copy of baseDeckCards)
+        // Partial Shuffle: Only shuffle the first 'needed' cards
         const deck = [...baseDeckCards];
-        let m = deck.length, t: Card, j: number;
-        while (m) {
-            j = Math.floor(Math.random() * m--);
-            t = deck[m];
-            deck[m] = deck[j];
-            deck[j] = t;
+        for (let j = 0; j < needed; j++) {
+            const r = j + Math.floor(Math.random() * (deck.length - j));
+            const temp = deck[j];
+            deck[j] = deck[r];
+            deck[r] = temp;
         }
 
+        let cardIdx = 0;
+
         // 模拟公共牌补全
-        const simCommunity = [...communityCards];
-        while (simCommunity.length < 5) {
-            const c = deck.pop();
-            if (c) simCommunity.push(c);
+        // Copy existing community cards first
+        let commIdx = 0;
+        for (; commIdx < communityCards.length; commIdx++) {
+            simCommunity[commIdx] = communityCards[commIdx];
+        }
+        // Fill rest from deck
+        while (commIdx < 5) {
+            simCommunity[commIdx++] = deck[cardIdx++];
         }
 
         // 模拟对手手牌
-        const simOpponentHands: Card[][] = [];
-        for (let k = 0; k < activeOpponentsCount; k++) {
-            const c1 = deck.pop();
-            const c2 = deck.pop();
-            if (c1 && c2) simOpponentHands.push([c1, c2]);
-        }
+        // Evaluate loop inline to avoid creating simOpponentHands array if possible?
+        // But we need to check ALL opponents against ME.
 
         // 评估我的牌
+        // Construct myFullHand
         const myFullHand = [...playerHand, ...simCommunity];
         const myResult = evaluateHand(myFullHand);
-
-        // 评估对手的牌
         const myRank = myResult.rank;
         const myScore = myResult.score;
+
         let won = true;
         let tie = false;
 
-        for (const oppHand of simOpponentHands) {
-            const oppFullHand = [...oppHand, ...simCommunity];
+        // 评估对手
+        for (let k = 0; k < activeOpponentsCount; k++) {
+            const c1 = deck[cardIdx++];
+            const c2 = deck[cardIdx++];
+            // Optimization: Reuse a static array for opponent eval?
+            // evaluateHand takes Card[], so we can pass [c1, c2, ...simCommunity] directly?
+            // constructing [...simCommunity, c1, c2] is cleaner.
+
+            const oppFullHand = [...simCommunity, c1, c2];
             const oppResult = evaluateHand(oppFullHand);
 
             if (oppResult.rank > myRank) {

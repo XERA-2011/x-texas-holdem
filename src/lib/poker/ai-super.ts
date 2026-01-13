@@ -151,12 +151,11 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     if (isMultiwayPot) cBetChance -= 0.25;  // 多人锅大幅降低
 
     // SPR (Stack-to-Pot Ratio) 感知
-    // SPR < 4: 浅筹码，倾向 All-in or Fold
-    // SPR 4-13: 中等筹码，标准策略
-    // SPR > 13: 深筹码，可以多看牌
+    // SPR < 2.5: 浅筹码 (was 4)，此数值越小越容易 All-in
+    // SPR 2.5-13: 中等筹码
     const effectiveStack = player.chips + player.currentBet;
     const spr = ctx.pot > 0 ? effectiveStack / ctx.pot : 20;
-    const isShallowStack = spr < 4;
+    const isShallowStack = spr < 2.5;
     const isDeepStack = spr > 13;
 
     // 偷盲注检测
@@ -254,12 +253,15 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         // 如果牌面有同花可能 (3 suited)，但我们的胜率（由蒙特卡洛算出）并不是极高
         // 说明我们可能只是顺子或两对，正在面对同花
         if (flushPossible) {
-            // 胜率惩罚：如果胜率没有 > 0.85 (非坚果/接近坚果)，则大幅降低跟注意愿
-            // 模拟人类思维： "牌面三张花，他打这么重，我有顺子也不敢接"
-            if (winRate < 0.85) {
-                dangerAdjustment -= 0.15; // 降低 15% 胜率评估
-                if (isOverBet || isAllIn) dangerAdjustment -= 0.10; // 再降 10%
+            // 胜率惩罚：如果胜率没有 > 0.9 (接近坚果)，则大幅降低跟注意愿
+            // 危险牌面加重惩罚
+            if (winRate < 0.90) {
+                dangerAdjustment -= 0.20; // 降低 20% 胜率评估 (was 0.15)
+                if (isOverBet || isAllIn) dangerAdjustment -= 0.15; // 再降 15% (was 0.10)
             }
+        } else if (boardTexture > 0.7 && winRate < 0.85) {
+            // 虽然没有花，但面很湿 (顺子面)，且我们不是坚果
+            dangerAdjustment -= 0.10;
         }
     }
     const finalWinRate = adjustedWinRate + dangerAdjustment;

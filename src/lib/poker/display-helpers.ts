@@ -47,23 +47,21 @@ export function getHandDetailedDescription(result: HandResult): string {
         case HandRankType.STRAIGHT_FLUSH:
             return `同花顺 (${r(0)} High)`;
         case HandRankType.QUADS:
-            return `四条 (${r(0)})`;
+            return `四条 (${r(0)}) + ${r(4)}`;
         case HandRankType.FULL_HOUSE:
-            // 葫芦：winningCards[0] 是三条，winningCards[3] 是对子
             return `葫芦 (${r(0)} & ${r(3)})`;
         case HandRankType.FLUSH:
             return `同花 (${r(0)} High)`;
         case HandRankType.STRAIGHT:
             return `顺子 (${r(0)} High)`;
         case HandRankType.TRIPS:
-            return `三条 (${r(0)})`;
+            return `三条 (${r(0)}) + ${r(3)}, ${r(4)}`;
         case HandRankType.TWO_PAIR:
-            // 两对：P1 在 [0]，P2 在 [2]
-            return `两对 (${r(0)} & ${r(2)})`;
+            return `两对 (${r(0)} & ${r(2)}) + ${r(4)}`;
         case HandRankType.PAIR:
-            return `对子 (${r(0)})`;
+            return `对子 (${r(0)}) + ${r(2)}, ${r(3)}, ${r(4)}`;
         case HandRankType.HIGH_CARD:
-            return `高牌 (${r(0)})`;
+            return `高牌 (${r(0)}) + ${r(1)}, ${r(2)}, ${r(3)}, ${r(4)}`;
         default:
             return getRankName(rank);
     }
