@@ -1,8 +1,12 @@
 # X-TEXAS-HOLDEM
 
-- **GitHub Pages**: [https://xera-2011.github.io/x-texas-holdem/](https://xera-2011.github.io/x-texas-holdem/)
-- **Vercel**: [https://x-texas-holdem.vercel.app/](https://x-texas-holdem.vercel.app/)
-- **Cloudflare Pages**: [https://x-texas-holdem.pages.dev/](https://x-texas-holdem.pages.dev/)
+## 🌐 Live Deployments
+
+| Platform | URL |
+|----------|-----|
+| Cloudflare Pages | [x-texas-holdem.pages.dev](https://x-texas-holdem.pages.dev/) |
+| Vercel | [x-texas-holdem.vercel.app](https://x-texas-holdem.vercel.app/) |
+| GitHub Pages | [xera-2011.github.io/x-texas-holdem](https://xera-2011.github.io/x-texas-holdem/) |
 
 > 📱 **体验提示**：本项目已深度适配移动端，推荐使用 **手机浏览器** 访问以获得最佳沉浸式体验。
 
