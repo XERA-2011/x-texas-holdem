@@ -206,7 +206,7 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
     // 筹码领先时可以更保守，筹码落后时需要更激进
     const icmAdjustment = stackRatio > 1.5 ? -0.05 : (stackRatio < 0.5 ? 0.10 : 0);
-    const icmAdjustedWinRate = winRate + icmAdjustment;
+    // const icmAdjustedWinRate = winRate + icmAdjustment;
 
     // 极好底池赔率检测 (Excellent Pot Odds)
     // 当跟注金额相对底池极小时（如对手小额 All In），几乎应该总是跟注
@@ -230,17 +230,17 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     // ============ 危险牌面感知 (Wet Board & Heavy Action) ============
     // 检测牌面是否有同花或顺子可能
     let flushPossible = false;
-    let straightPossible = false;
+
     if (!isPreflop) {
         const suits: Record<string, number> = {};
-        const ranks: number[] = [];
+        // const ranks: number[] = [];
         ctx.communityCards.forEach(c => {
             suits[c.suit] = (suits[c.suit] || 0) + 1;
             // 简单的 rank 记录，实际应用需要更复杂的顺子检测，这里用 boardTexture 辅助
         });
         flushPossible = Object.values(suits).some(count => count >= 3);
         // 如果 boardTexture 极高且 flush 没成，那很可能是顺子面
-        straightPossible = boardTexture > 0.7 && !flushPossible;
+        // straightPossible = boardTexture > 0.7 && !flushPossible;
     }
 
     // 重注定义：Call Amount 很大，或者 Call Amount 占剩余有效筹码比例很高
@@ -497,7 +497,7 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                     ctx.communityCards.forEach(c => {
                         boardSuits[c.suit] = (boardSuits[c.suit] || 0) + 1;
                     });
-                    const dominantSuit = Object.entries(boardSuits).find(([_, count]) => count >= 3)?.[0];
+                    const dominantSuit = Object.entries(boardSuits).find(([, count]) => count >= 3)?.[0];
 
                     if (dominantSuit) {
                         // 检查我们是否持有该花色的 A

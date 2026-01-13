@@ -7,6 +7,12 @@ export function usePokerGame() {
   const engineRef = useRef<PokerGameEngine | null>(null);
   const [gameState, setGameState] = useState<ReturnType<PokerGameEngine['getSnapshot']> | null>(null);
 
+  const [isAutoPlay, setIsAutoPlay] = useState(false);
+
+  const toggleAutoPlay = useCallback(() => {
+    setIsAutoPlay(prev => !prev);
+  }, []);
+
   // 移除自动初始化 useEffect
   useEffect(() => {
     return () => {
@@ -82,11 +88,7 @@ export function usePokerGame() {
     return [];
   }, []);
 
-  const [isAutoPlay, setIsAutoPlay] = useState(false);
 
-  const toggleAutoPlay = useCallback(() => {
-    setIsAutoPlay(prev => !prev);
-  }, []);
 
   // 同步 AutoPlay 状态到引擎 (用于加速 AI 决策)
   useEffect(() => {
@@ -104,7 +106,7 @@ export function usePokerGame() {
 
     // 1. 如果对局结束 (Session Complete) -> 停止自动托管
     if (gameState.isSessionComplete) {
-      setIsAutoPlay(false);
+      setTimeout(() => setIsAutoPlay(false), 0);
       return;
     }
 

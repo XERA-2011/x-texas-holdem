@@ -26,7 +26,7 @@ function parseCards(str: string): Card[] {
         else if (suitChar === 'c') suit = '♣';
         else if (suitChar === 's') suit = '♠';
 
-        return new Card(rankChar as any, suit);
+        return new Card(rankChar as import('../src/lib/poker/types').Rank, suit);
     });
 }
 
@@ -42,8 +42,9 @@ async function runTests() {
         try {
             fn();
             passed++;
-        } catch (e: any) {
-            console.error(e.message);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.error(msg);
             failed++;
         }
     };

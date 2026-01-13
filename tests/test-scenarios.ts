@@ -392,7 +392,7 @@ console.log("===========================================");
 console.log("   纯粹场景测试 (Pure Scenario Testing)    ");
 console.log("===========================================\n");
 
-runScenarioTests().then((logs) => {
+runScenarioTests().then(() => {
     console.log("\n-------------------------------------------");
     console.log("场景测试完成。");
     console.log("-------------------------------------------");
