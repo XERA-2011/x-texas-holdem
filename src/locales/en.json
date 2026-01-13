@@ -19,7 +19,12 @@
         "phase_river": "River: {{card}}",
         "phase_showdown": "Showdown!",
         "ai_mode_switch": "Switched AI mode to: {{mode}}",
-        "error_settlement": "Settlement Error: {{error}}"
+        "error_settlement": "Settlement Error: {{error}}",
+        "history_title": "=== Hand History ===",
+        "history_public_cards": "Public Cards",
+        "history_player_status": "-- Player Status (End of Hand) --",
+        "history_action_logs": "-- Action Logs --",
+        "history_eliminated_status": "Eliminated"
     },
     "common": {
         "game_title": "Texas Hold'em",
@@ -54,7 +59,12 @@
         "you": "You",
         "rank_10": "T",
         "round_info_limit_short": "{{current}}/{{limit}}",
-        "round_info_short": "{{current}}"
+        "round_info_short": "{{current}}",
+        "player_bet": "Bet",
+        "player_fold": "Fold",
+        "player_allin": "All-in",
+        "player_out": "Out",
+        "player_eliminated": "Eliminated"
     },
     "menu": {
         "title": "Texas Hold'em",

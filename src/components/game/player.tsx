@@ -37,7 +37,7 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
       {player.status !== 'folded' && player.status !== 'eliminated' && player.currentBet > 0 && (
         <div className="mb-1 z-30 animate-in fade-in zoom-in-50 duration-200">
           <div className="bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold shadow-md border border-yellow-500 dark:border-yellow-400 flex flex-col items-center leading-tight">
-            <span className="text-[8px] opacity-80 uppercase leading-none mb-0.5">Bet</span>
+            <span className="text-[8px] opacity-80 uppercase leading-none mb-0.5">{t('common.player_bet')}</span>
             ${player.currentBet}
           </div>
         </div>
@@ -63,9 +63,9 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
         {/* Status Badge */}
         {player.status !== 'active' && (
           <div className={`text-[9px] sm:text-[10px] md:text-xs lg:text-sm uppercase font-bold mt-0.5 leading-none ${isWinner ? 'text-amber-900' : 'text-slate-400'}`}>
-            {player.status === 'folded' && 'Fold'}
-            {player.status === 'allin' && <span className="font-black text-red-600 dark:text-red-500">All-in</span>}
-            {player.status === 'eliminated' && 'Out'}
+            {player.status === 'folded' && t('common.player_fold')}
+            {player.status === 'allin' && <span className="font-black text-red-600 dark:text-red-500">{t('common.player_allin')}</span>}
+            {player.status === 'eliminated' && t('common.player_out')}
           </div>
         )}
 

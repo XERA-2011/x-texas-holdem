@@ -96,23 +96,23 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
           <button
             onClick={() => {
               if (!players) return;
-              let text = "=== Hand History ===\n\n";
+              let text = `${t('log.history_title')}\n\n`;
 
               if (communityCards && communityCards.length > 0) {
-                text += `Public Cards: [${communityCards.map(c => c.toString()).join(' ')}]\n\n`;
+                text += `${t('log.history_public_cards')}: [${communityCards.map(c => c.toString()).join(' ')}]\n\n`;
               }
 
-              text += "-- Player Status (End of Hand) --\n";
+              text += `${t('log.history_player_status')}\n`;
               players.forEach(p => {
                 let status: string = p.status;
-                if (p.isEliminated) status = 'Eliminated';
+                if (p.isEliminated) status = t('log.history_eliminated_status');
 
                 // For debugging: Always show hands if available
                 const handStr = p.hand.map(c => c.toString()).join(' ');
 
-                text += `${p.name}: $${p.chips} (Bet: $${p.currentBet}) [${status}] {${handStr}}\n`;
+                text += `${t(p.name)}: $${p.chips} (${t('common.player_bet')}: $${p.currentBet}) [${status}] {${handStr}}\n`;
               });
-              text += "\n-- Action Logs --\n";
+              text += `\n${t('log.history_action_logs')}\n`;
               [...logs].reverse().forEach(l => {
                 const clean = l.message.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
                 text += `[${l.type.toUpperCase()}] ${clean}\n`;

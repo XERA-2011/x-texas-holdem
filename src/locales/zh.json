@@ -19,7 +19,12 @@
         "phase_river": "河牌: {{card}}",
         "phase_showdown": "摊牌!",
         "ai_mode_switch": "切换 AI 模式为: {{mode}}",
-        "error_settlement": "结算错误: {{error}}"
+        "error_settlement": "结算错误: {{error}}",
+        "history_title": "=== 牌局历史 ===",
+        "history_public_cards": "公共牌",
+        "history_player_status": "-- 玩家状态 (本局结束) --",
+        "history_action_logs": "-- 行动日志 --",
+        "history_eliminated_status": "已淘汰"
     },
     "common": {
         "game_title": "单机德州扑克",
@@ -54,7 +59,12 @@
         "you": "你",
         "rank_10": "10",
         "round_info_limit_short": "{{current}}/{{limit}}",
-        "round_info_short": "{{current}}"
+        "round_info_short": "{{current}}",
+        "player_bet": "下注",
+        "player_fold": "弃牌",
+        "player_allin": "全押",
+        "player_out": "淘汰",
+        "player_eliminated": "已淘汰"
     },
     "menu": {
         "title": "单机德州扑克",
