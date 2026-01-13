@@ -1,3 +1,4 @@
+import i18n from '@/lib/i18n';
 import {
   SUITS, RANKS, RANK_VALUE, BOT_NAMES, SPEECH_LINES,
   DEFAULT_SUPER_AI_CONFIG, PREFLOP_HAND_STRENGTH, DEFAULT_GAME_CONFIG,
@@ -111,7 +112,7 @@ export class PokerGameEngine {
       this.players.push({
         id: i,
         persona: isHuman ? 'human' : 'bot',
-        name: isHuman ? 'You' : shuffledNames[i - 1],
+        name: isHuman ? 'common.you' : shuffledNames[i - 1],
         isHuman: isHuman,
         chips: GAME_RULES.INITIAL_CHIPS,
         hand: [],
@@ -222,7 +223,7 @@ export class PokerGameEngine {
     this.bet(this.players[bbIdx], GAME_RULES.BIG_BLIND);
     this.highestBet = GAME_RULES.BIG_BLIND;
 
-    this.log(`庄家 ${this.players[this.dealerIdx].name}, 盲注 $${GAME_RULES.SMALL_BLIND}/$${GAME_RULES.BIG_BLIND}`, 'phase');
+    this.log(i18n.t('log.dealer_blind', { name: i18n.t(this.players[this.dealerIdx].name), sb: GAME_RULES.SMALL_BLIND, bb: GAME_RULES.BIG_BLIND }), 'phase');
 
     this.prepareBettingRound(this.getNextActive(bbIdx));
     this.notify();
@@ -254,9 +255,9 @@ export class PokerGameEngine {
     this.winningCards = [];
 
     if (returnAmount > 0) {
-      this.log(`${winner.name} 拿回 $${returnAmount} (未被跟注)`, 'win');
+      this.log(i18n.t('log.fold_win_refund', { name: i18n.t(winner.name), amount: returnAmount }), 'win');
     }
-    this.log(`${winner.name} 赢得了 $${winAmount} (其他玩家弃牌)`, 'win');
+    this.log(i18n.t('log.fold_win_pot', { name: i18n.t(winner.name), amount: winAmount }), 'win');
 
     this.stage = 'showdown';
     this.currentTurnIdx = -1;
@@ -264,7 +265,7 @@ export class PokerGameEngine {
   }
 
   showdown() {
-    this.log('摊牌!', 'phase');
+    this.log(i18n.t('log.phase_showdown'), 'phase');
     const activePlayers = this.players.filter(p => !p.isEliminated && p.status !== 'folded');
     const foldedPlayers = this.players.filter(p => !p.isEliminated && p.status === 'folded');
 
@@ -288,7 +289,7 @@ export class PokerGameEngine {
       );
       if (isPlayingBoard) info += " (Board)";
       player.handDescription = info;
-      this.log(`${player.name} 亮牌: ${this.formatCards(player.hand)} (${info})`, 'showdown');
+      this.log(i18n.t('log.showdown_reveal', { name: i18n.t(player.name), cards: this.formatCards(player.hand), desc: info }), 'showdown');
     });
 
     // 3. 边池与分池分配逻辑
@@ -317,7 +318,7 @@ export class PokerGameEngine {
 
           // 1. 先报退款
           if (winData.refund > 0) {
-            this.log(`${p.name} 拿回 $${winData.refund} (退回)`, 'win');
+            this.log(i18n.t('log.win_refund', { name: i18n.t(p.name), amount: winData.refund }), 'win');
           }
 
           // 2. 再报盈利
@@ -325,7 +326,7 @@ export class PokerGameEngine {
             // 过滤掉 '退回' 类型，只保留主池/边池
             const realTypes = Array.from(new Set(winData.types.filter(t => t !== '退回')));
             const typeStr = realTypes.length > 0 ? realTypes.join(' & ') : '主池';
-            this.log(`${p.name} 赢得 $${winData.winnings} (${typeStr})`, 'win');
+            this.log(i18n.t('log.win_pot', { name: i18n.t(p.name), amount: winData.winnings, type: typeStr }), 'win');
           }
         }
       });
@@ -333,7 +334,7 @@ export class PokerGameEngine {
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       console.error("Critical Error in SidePot Logic:", e);
-      this.log(`结算错误: ${errorMessage}`, 'phase');
+      this.log(i18n.t('log.error_settlement', { error: errorMessage }), 'phase');
       // Fallback: 给第一名 active 玩家
       if (activePlayers.length > 0) {
         activePlayers[0].chips += this.pot;
@@ -352,11 +353,11 @@ export class PokerGameEngine {
     switch (action) {
       case 'fold':
         player.status = 'folded';
-        this.log(`${player.name} 弃牌`, 'action');
+        this.log(i18n.t('log.action_fold', { name: i18n.t(player.name) }), 'action');
         break;
       case 'call':
         if (callAmount === 0) { // 过牌
-          this.log(`${player.name} 让牌/过牌`, 'action');
+          this.log(i18n.t('log.action_check', { name: i18n.t(player.name) }), 'action');
           player.hasActed = true;
         } else {
           // 检查跟注是否让玩家全压
@@ -364,9 +365,9 @@ export class PokerGameEngine {
           this.bet(player, chipsToBet);
 
           if (player.chips === 0) {
-            this.log(`${player.name} All In (跟注) $${chipsToBet}`, 'action');
+            this.log(i18n.t('log.action_allin_call', { name: i18n.t(player.name), amount: chipsToBet }), 'action');
           } else {
-            this.log(`${player.name} 跟注 $${chipsToBet}`, 'action');
+            this.log(i18n.t('log.action_call', { name: i18n.t(player.name), amount: chipsToBet }), 'action');
           }
           player.hasActed = true;
         }
@@ -389,7 +390,7 @@ export class PokerGameEngine {
 
         this.highestBet = player.currentBet;
         this.raisesInRound++;
-        this.log(`${player.name} 加注至 $${player.currentBet}`, 'action');
+        this.log(i18n.t('log.action_raise', { name: i18n.t(player.name), amount: player.currentBet }), 'action');
         player.hasActed = true;
         break;
       case 'allin':
@@ -399,14 +400,14 @@ export class PokerGameEngine {
         if (player.currentBet > this.highestBet) {
           this.highestBet = player.currentBet;
           this.raisesInRound++;
-          this.log(`${player.name} All In! (加注至 $${player.currentBet})`, 'action');
+          this.log(i18n.t('log.action_allin_raise', { name: i18n.t(player.name), amount: player.currentBet }), 'action');
         } else if (player.currentBet === this.highestBet) {
           // 这种情况通常已经被 call 分支覆盖，但以防万一
-          this.log(`${player.name} All In (跟注至 $${player.currentBet})`, 'action');
+          this.log(i18n.t('log.action_allin_call_raise', { name: i18n.t(player.name), amount: player.currentBet }), 'action');
         } else {
           // 短码全压，被视为 Call 但金额不足
           const added = allInAmt; // 近似
-          this.log(`${player.name} All In (短码跟注 $${added})`, 'action');
+          this.log(i18n.t('log.action_allin_short', { name: i18n.t(player.name), amount: added }), 'action');
         }
         player.hasActed = true;
         break;
@@ -586,15 +587,15 @@ export class PokerGameEngine {
     if (this.stage === 'preflop') {
       this.stage = 'flop';
       this.communityCards.push(this.deck.deal()!, this.deck.deal()!, this.deck.deal()!);
-      this.log(`翻牌: ${this.formatCards(this.communityCards)}`, 'phase');
+      this.log(i18n.t('log.phase_flop', { cards: this.formatCards(this.communityCards) }), 'phase');
     } else if (this.stage === 'flop') {
       this.stage = 'turn';
       this.communityCards.push(this.deck.deal()!);
-      this.log(`转牌: ${this.communityCards[3]}`, 'phase');
+      this.log(i18n.t('log.phase_turn', { card: this.communityCards[3].toString() }), 'phase');
     } else if (this.stage === 'turn') {
       this.stage = 'river';
       this.communityCards.push(this.deck.deal()!);
-      this.log(`河牌: ${this.communityCards[4]}`, 'phase');
+      this.log(i18n.t('log.phase_river', { card: this.communityCards[4].toString() }), 'phase');
     } else {
       this.stage = 'showdown';
       this.showdown();
@@ -781,7 +782,7 @@ export class PokerGameEngine {
 
   setAIMode(mode: AIMode) {
     this.aiMode = mode;
-    this.log(`切换 AI 模式为: ${mode === 'super' ? '超级电脑' : '普通模式'}`, 'normal');
+    this.log(i18n.t('log.ai_mode_switch', { mode: mode === 'super' ? i18n.t('menu.super_mode') : i18n.t('menu.normal_mode') }), 'normal');
   }
 
   /**

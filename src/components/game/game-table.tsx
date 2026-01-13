@@ -1,4 +1,5 @@
 import { Player as PlayerType, Card as CardType, GameLog as GameLogType } from '@/lib/poker-engine';
+import { useTranslation } from 'react-i18next';
 import { Player } from './player';
 import { Card } from './card';
 import { GameLog } from './game-log';
@@ -16,6 +17,7 @@ interface TableProps {
 }
 
 export function GameTable({ players, communityCards, pot, dealerIdx, currentTurnIdx, stage, logs, winners, winningCards }: TableProps) {
+  const { t } = useTranslation();
   // Mobile/Desktop positions
   // Updated aspect ratios for better mobile spacing (taller table)
 
@@ -45,7 +47,7 @@ export function GameTable({ players, communityCards, pot, dealerIdx, currentTurn
             {/* Pot Display */}
             <div className="mt-[10%] pointer-events-auto z-10">
               <div className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/80 dark:bg-black/60 rounded-full border border-zinc-200 dark:border-white/10 text-zinc-900 dark:text-zinc-100 font-bold font-mono text-sm sm:text-lg shadow-sm backdrop-blur-sm whitespace-nowrap">
-                Pot: ${pot}
+                {t('common.pot', { amount: pot })}
               </div>
             </div>
 

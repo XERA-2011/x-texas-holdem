@@ -1,5 +1,8 @@
+'use client';
+
 import { Card as CardType } from '@/lib/poker-engine';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CardProps {
   card?: CardType;
@@ -9,6 +12,8 @@ interface CardProps {
 }
 
 export function Card({ card, hidden, className = "", isWinning }: CardProps) {
+  const { t } = useTranslation();
+
   if (hidden || !card) {
     return (
       <div
@@ -18,6 +23,7 @@ export function Card({ card, hidden, className = "", isWinning }: CardProps) {
   }
 
   const isRed = card.color === 'red';
+  const displayRank = card.rank === 'T' ? t('common.rank_10') : card.rank;
 
   return (
     <div
@@ -38,7 +44,7 @@ export function Card({ card, hidden, className = "", isWinning }: CardProps) {
         {card.suit}
       </div>
       <div className={`text-[10px] sm:text-base font-bold leading-none ${isRed ? 'text-red-600' : 'text-gray-900'}`}>
-        {card.rank === 'T' ? '10' : card.rank}
+        {displayRank}
       </div>
     </div>
   );

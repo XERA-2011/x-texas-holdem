@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -19,19 +20,20 @@ interface LogProps {
 // Helper to create cards for display
 const c = (r: Rank, s: Suit) => new Card(r, s);
 
-const HAND_EXAMPLES = [
-  { name: '1. 同花顺 (Straight Flush)', cards: [c('A', '♠'), c('K', '♠'), c('Q', '♠'), c('J', '♠'), c('T', '♠')], winningIndices: [0, 1, 2, 3, 4] },
-  { name: '2. 四条 (Quads)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('A', '♦'), c('K', '♠')], winningIndices: [0, 1, 2, 3] },
-  { name: '3. 葫芦 (Full House)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('K', '♥')], winningIndices: [0, 1, 2, 3, 4] },
-  { name: '4. 同花 (Flush)', cards: [c('A', '♠'), c('J', '♠'), c('8', '♠'), c('5', '♠'), c('2', '♠')], winningIndices: [0, 1, 2, 3, 4] },
-  { name: '5. 顺子 (Straight)', cards: [c('Q', '♠'), c('J', '♥'), c('T', '♦'), c('9', '♣'), c('8', '♠')], winningIndices: [0, 1, 2, 3, 4] },
-  { name: '6. 三条 (Trips)', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('Q', '♥')], winningIndices: [0, 1, 2] },
-  { name: '7. 两对 (Two Pair)', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('K', '♠'), c('Q', '♥')], winningIndices: [0, 1, 2, 3] },
-  { name: '8. 对子 (Pair)', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('Q', '♠'), c('J', '♥')], winningIndices: [0, 1] },
-  { name: '9. 高牌 (High Card)', cards: [c('A', '♠'), c('K', '♥'), c('Q', '♣'), c('J', '♠'), c('9', '♥')], winningIndices: [0] },
+const HAND_PATTERNS = [
+  { key: 'straight_flush', cards: [c('A', '♠'), c('K', '♠'), c('Q', '♠'), c('J', '♠'), c('T', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { key: 'quads', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('A', '♦'), c('K', '♠')], winningIndices: [0, 1, 2, 3] },
+  { key: 'full_house', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('K', '♥')], winningIndices: [0, 1, 2, 3, 4] },
+  { key: 'flush', cards: [c('A', '♠'), c('J', '♠'), c('8', '♠'), c('5', '♠'), c('2', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { key: 'straight', cards: [c('Q', '♠'), c('J', '♥'), c('T', '♦'), c('9', '♣'), c('8', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { key: 'trips', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('Q', '♥')], winningIndices: [0, 1, 2] },
+  { key: 'two_pair', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('K', '♠'), c('Q', '♥')], winningIndices: [0, 1, 2, 3] },
+  { key: 'pair', cards: [c('A', '♠'), c('A', '♥'), c('K', '♣'), c('Q', '♠'), c('J', '♥')], winningIndices: [0, 1] },
+  { key: 'high_card', cards: [c('A', '♠'), c('K', '♥'), c('Q', '♣'), c('J', '♠'), c('9', '♥')], winningIndices: [0] },
 ];
 
 export function GameLog({ logs, players, communityCards }: LogProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'history_copied'>('idle');
   const [showRules, setShowRules] = useState(false);
@@ -46,22 +48,22 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
     <div className="w-[85%] sm:w-full mx-auto flex flex-col bg-white/90 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-lg backdrop-blur-sm shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-white/5">
-        <span className="text-xs md:text-sm font-bold text-zinc-700 dark:text-gray-400">Game Log</span>
+        <span className="text-xs md:text-sm font-bold text-zinc-700 dark:text-gray-400">{t('common.game_log')}</span>
         <div className="flex gap-2">
           {/* Rules Modal */}
           <Dialog open={showRules} onOpenChange={setShowRules}>
             <DialogContent className="sm:max-w-[400px] max-h-[85vh] overflow-y-auto w-[95%] rounded-xl">
               <DialogHeader>
-                <DialogTitle>牌型大小 (由大到小)</DialogTitle>
+                <DialogTitle>{t('common.hand_ranks_title')}</DialogTitle>
                 <DialogDescription className="sr-only">
-                  常见的德州扑克牌型排行榜。
+                  {t('common.hand_ranks_desc')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-1">
-                {HAND_EXAMPLES.map((ex, i) => (
+                {HAND_PATTERNS.map((ex, i) => (
                   <div key={i} className="flex items-center justify-between pb-1 pt-1 border-b border-zinc-100 dark:border-white/5 last:border-0">
                     <div className="font-bold text-xs text-zinc-800 dark:text-zinc-200">
-                      {ex.name.split(' (')[0]}
+                      {t(`hands.${ex.key}`)}
                     </div>
                     <div className="flex gap-1">
                       {ex.cards.map((card, idx) => {
@@ -88,7 +90,7 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
             onClick={() => setShowRules(true)}
             className="text-[10px] px-2 py-0.5 rounded transition-all duration-300 bg-zinc-800 dark:bg-white hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-black border border-zinc-700 dark:border-zinc-300"
           >
-            规则
+            {t('common.rules')}
           </button>
 
           <button
@@ -116,42 +118,25 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
                 text += `[${l.type.toUpperCase()}] ${clean}\n`;
               });
 
-              // 兼容性处理：navigator.clipboard 在非 HTTPS 环境下可能不可用
-              if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+              // Modern clipboard API
+              if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => {
                   setCopyState('history_copied');
                   setTimeout(() => setCopyState('idle'), 2000);
-                }).catch(() => {
-                  // Fallback: 创建临时 textarea
-                  fallbackCopy(text);
+                }).catch((e) => {
+                  console.error(e);
+                  alert(t('common.copy_fail'));
                 });
               } else {
-                // Fallback for non-secure contexts
-                fallbackCopy(text);
-              }
-
-              function fallbackCopy(str: string) {
-                const textarea = document.createElement('textarea');
-                textarea.value = str;
-                textarea.style.position = 'fixed';
-                textarea.style.left = '-9999px';
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                  document.execCommand('copy');
-                  setCopyState('history_copied');
-                  setTimeout(() => setCopyState('idle'), 2000);
-                } catch {
-                  alert('复制失败，请手动复制');
-                }
-                document.body.removeChild(textarea);
+                // Non-secure context or incompatible browser
+                alert(t('common.copy_fail'));
               }
             }}
             className={`text-[10px] px-2 py-0.5 rounded transition-all duration-300 ${copyState === 'history_copied'
               ? 'bg-green-500 text-white'
               : 'bg-zinc-800 dark:bg-white hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-black border border-zinc-700 dark:border-zinc-300'}`}
           >
-            {copyState === 'history_copied' ? '已复制' : '复制对局'}
+            {copyState === 'history_copied' ? t('common.copied') : t('common.copy_hand')}
           </button>
 
 
@@ -163,7 +148,7 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
         ref={scrollRef}
         className="h-24 sm:h-36 overflow-y-auto p-2 font-mono text-xs md:text-sm text-zinc-700 dark:text-gray-300 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
       >
-        {logs.length === 0 && <div className="text-center text-gray-500 italic">Game log...</div>}
+        {logs.length === 0 && <div className="text-center text-gray-500 italic">{t('common.game_log_placeholder')}</div>}
         {logs.map((log) => (
           <div key={log.id} className="mb-0.5 leading-tight">
             {log.type === 'phase' && (

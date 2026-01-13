@@ -1,4 +1,6 @@
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useTranslation } from 'react-i18next';
 import { GithubIcon } from '@/components/icons/github-icon';
 import { Bot, Brain } from 'lucide-react';
 import type { AIMode } from '@/lib/poker/types';
@@ -33,21 +35,22 @@ export function GameHeader({
     onExitGame,
     onShowLeaderboard
 }: GameHeaderProps) {
+    const { t } = useTranslation();
     return (
         <>
             {/* Top Left Controls - Auto Play */}
             <div className="absolute top-4 left-4 z-50 flex items-center gap-4">
                 <button
                     onClick={onToggleAutoPlay}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all hover:opacity-80 active:scale-95
+                    className={`flex items-center gap-2 h-8 px-3 rounded-full border shadow-sm transition-all hover:opacity-80 active:scale-95
             ${isAutoPlay
                             ? 'bg-gradient-to-r from-green-500 to-emerald-600 border-transparent text-white ring-2 ring-green-200 dark:ring-green-900'
                             : 'bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'
                         }`}
-                    title={isAutoPlay ? "点击关闭自动托管" : "点击开启自动托管"}
+                    title={isAutoPlay ? t('common.auto_off_title') : t('common.auto_on_title')}
                 >
                     <span className={`text-xs font-bold ${isAutoPlay ? 'animate-pulse' : ''}`}>
-                        {isAutoPlay ? '自动中' : '自动'}
+                        {isAutoPlay ? t('common.auto_playing') : t('common.auto_play')}
                     </span>
                 </button>
             </div>
@@ -57,13 +60,19 @@ export function GameHeader({
                 {/* Round Counter & Leaderboard Trigger */}
                 <button
                     onClick={onShowLeaderboard}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all hover:opacity-80 active:scale-95 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700"
-                    title="点击查看排名"
+                    className="flex items-center justify-center md:justify-start gap-2 rounded-full border shadow-sm transition-all hover:opacity-80 active:scale-95 bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700
+                    w-8 h-8 p-0 md:w-auto md:px-3"
+                    title={t('common.leaderboard_btn')}
                 >
-                    <span className="text-xs font-bold">
+                    <span className="text-xs font-bold md:hidden">
                         {roundLimit
-                            ? `第 ${currentRoundNumber}/${roundLimit} 局`
-                            : `第 ${currentRoundNumber} 局`}
+                            ? t('common.round_info_limit_short', { current: currentRoundNumber, limit: roundLimit })
+                            : t('common.round_info_short', { current: currentRoundNumber })}
+                    </span>
+                    <span className="text-xs font-bold hidden md:block">
+                        {roundLimit
+                            ? t('common.round_info_limit', { current: currentRoundNumber, limit: roundLimit })
+                            : t('common.round_info', { current: currentRoundNumber })}
                     </span>
                 </button>
 
@@ -71,12 +80,13 @@ export function GameHeader({
                 <Dialog>
                     <DialogTrigger asChild>
                         <button
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all hover:opacity-80 active:scale-95
-            ${aiMode === 'super'
+                            className={`flex items-center justify-center md:justify-start gap-2 rounded-full border shadow-sm transition-all hover:opacity-80 active:scale-95
+                                w-8 h-8 p-0 md:w-auto md:px-3
+                ${aiMode === 'super'
                                     ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white'
                                     : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
                                 }`}
-                            title="点击切换模式（将重新开始游戏）"
+                            title={t('common.switch_mode_title')}
                         >
                             {aiMode === 'super' ? (
                                 <Brain className="w-4 h-4" />
@@ -84,23 +94,23 @@ export function GameHeader({
                                 <Bot className="w-4 h-4" />
                             )}
                             <span className="hidden md:block text-xs font-bold">
-                                {aiMode === 'super' ? '超级电脑' : '普通电脑'}
+                                {aiMode === 'super' ? t('menu.super_mode') : t('menu.normal_mode')}
                             </span>
                         </button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>重新开始游戏？</DialogTitle>
+                            <DialogTitle>{t('common.restart_confirm_title')}</DialogTitle>
                             <DialogDescription>
-                                切换模式将结束当前对局，所有进度将丢失。
+                                {t('common.restart_confirm_desc')}
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button variant="outline">取消</Button>
+                                <Button variant="outline">{t('common.cancel')}</Button>
                             </DialogClose>
                             <Button variant="destructive" onClick={onExitGame}>
-                                确认重开
+                                {t('common.confirm_restart')}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -115,6 +125,7 @@ export function GameHeader({
                 >
                     <GithubIcon className="w-5 h-5" />
                 </a>
+                <LanguageToggle />
                 <ThemeToggle />
             </div>
         </>

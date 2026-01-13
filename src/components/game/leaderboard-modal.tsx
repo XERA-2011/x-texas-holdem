@@ -1,4 +1,5 @@
 import { X, Trophy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Player } from '@/lib/poker/types';
 
 interface LeaderboardModalProps {
@@ -16,6 +17,7 @@ export function LeaderboardModal({
     currentRoundNumber,
     leaderboard
 }: LeaderboardModalProps) {
+    const { t } = useTranslation();
     if (!isOpen) return null;
 
     return (
@@ -33,23 +35,23 @@ export function LeaderboardModal({
                 <div className="text-center space-y-2">
                     <div className="flex items-center justify-center gap-3">
                         <h2 className="text-2xl font-black text-zinc-900 dark:text-zinc-100">
-                            实时排名
+                            {t('common.leaderboard_title')}
                         </h2>
                     </div>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
                         {roundLimit
-                            ? `当前进度: 第 ${currentRoundNumber}/${roundLimit} 局`
-                            : `当前进度: 第 ${currentRoundNumber} 局`}
+                            ? t('common.current_progress_limit', { current: currentRoundNumber, limit: roundLimit })
+                            : t('common.current_progress', { current: currentRoundNumber })}
                     </p>
                 </div>
 
                 {/* Leaderboard Table */}
                 <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                     <div className="grid grid-cols-12 gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 bg-white dark:bg-zinc-900 z-10">
-                        <div className="col-span-2 text-center">排名</div>
-                        <div className="col-span-5">玩家</div>
-                        <div className="col-span-2 text-right">筹码</div>
-                        <div className="col-span-3 text-right">变化</div>
+                        <div className="col-span-2 text-center">{t('result.rank')}</div>
+                        <div className="col-span-5">{t('result.player')}</div>
+                        <div className="col-span-2 text-right">{t('result.chips')}</div>
+                        <div className="col-span-3 text-right">{t('result.change')}</div>
                     </div>
                     {leaderboard.map(({ rank, player, delta }) => (
                         <div
@@ -67,8 +69,8 @@ export function LeaderboardModal({
                                 )}
                             </div>
                             <div className="col-span-5 flex items-center gap-1 text-zinc-900 dark:text-zinc-100 whitespace-nowrap overflow-hidden">
-                                <span className="truncate">{player.name}</span>
-                                {player.chips <= 0 && <span className="text-xs text-red-500 font-bold shrink-0">(已淘汰)</span>}
+                                <span className="truncate">{t(player.name)}</span>
+                                {player.chips <= 0 && <span className="text-xs text-red-500 font-bold shrink-0">{t('result.eliminated')}</span>}
                             </div>
                             <div className="col-span-2 flex items-center justify-end text-zinc-900 dark:text-zinc-100">
                                 ${player.chips}

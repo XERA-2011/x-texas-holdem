@@ -1,6 +1,7 @@
 import { Player as PlayerType, Card as CardType } from '@/lib/poker-engine';
 import { Card } from './card';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PlayerProps {
   player: PlayerType;
@@ -13,6 +14,7 @@ interface PlayerProps {
 }
 
 export function Player({ player, isActiveTurn, isDealer, gameStage, className = "", winningCards, isWinner }: PlayerProps) {
+  const { t } = useTranslation();
   const showFace = player.isHuman || gameStage === 'showdown';
 
   return (
@@ -22,7 +24,7 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
       {player.currentSpeech && (
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="relative bg-white text-black text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg border border-gray-200">
-            {player.currentSpeech}
+            {t(player.currentSpeech)}
             {/* Triangle */}
             <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45 border-b border-r border-gray-200"></div>
           </div>
@@ -54,7 +56,7 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
         `}
       >
         <div className="font-bold truncate max-w-[60px] sm:max-w-none mx-auto text-[9px] sm:text-xs md:text-sm lg:text-base">
-          {player.name}
+          {t(player.name)}
         </div>
         <div className={`font-mono leading-none md:text-lg ${isWinner ? 'text-black font-black' : (isActiveTurn ? 'text-zinc-200 dark:text-zinc-800' : 'text-zinc-600 dark:text-zinc-400')}`}>${player.chips}</div>
 
@@ -109,7 +111,7 @@ export function Player({ player, isActiveTurn, isDealer, gameStage, className = 
           <div className="absolute inset-0 z-50 flex items-center justify-center">
             <div className="bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-lg border border-white/20 backdrop-blur-sm animate-in fade-in duration-200 whitespace-nowrap">
               <Loader2 className="w-2.5 h-2.5 animate-spin text-white" />
-              <span>思考中</span>
+              <span>{t('common.thinking')}</span>
             </div>
           </div>
         )}

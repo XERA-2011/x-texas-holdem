@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
 import { GithubIcon } from '@/components/icons/github-icon';
 import { InfinityIcon } from '@/components/icons/infinity-icon';
 import { Bot, Brain } from 'lucide-react';
@@ -9,6 +11,7 @@ interface ModeSelectionProps {
 }
 
 export function ModeSelection({ onStartGame }: ModeSelectionProps) {
+    const { t } = useTranslation();
     const [roundLimitEnabled, setRoundLimitEnabled] = useState(false);
     const ROUND_LIMIT = 8;
 
@@ -25,12 +28,13 @@ export function ModeSelection({ onStartGame }: ModeSelectionProps) {
                 >
                     <GithubIcon className="w-5 h-5" />
                 </a>
+                <LanguageToggle />
                 <ThemeToggle />
             </div>
             <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 p-8 text-center space-y-8">
                 <div className="space-y-2">
                     <h1 className="text-2xl font-black text-zinc-900 dark:text-zinc-100">
-                        单机德州扑克
+                        {t('menu.title')}
                     </h1>
                 </div>
 
@@ -43,7 +47,7 @@ export function ModeSelection({ onStartGame }: ModeSelectionProps) {
                         <div className="p-3 bg-white dark:bg-zinc-800 rounded-full shadow-sm group-hover:scale-110 transition-transform mb-3">
                             <Bot className="w-8 h-8 text-zinc-900 dark:text-zinc-100" />
                         </div>
-                        <div className="font-bold text-base text-zinc-900 dark:text-zinc-100">普通电脑</div>
+                        <div className="font-bold text-base text-zinc-900 dark:text-zinc-100">{t('menu.normal_mode')}</div>
                     </button>
 
                     {/* Super Mode Button */}
@@ -53,13 +57,13 @@ export function ModeSelection({ onStartGame }: ModeSelectionProps) {
                     >
                         {/* Badge */}
                         <span className="absolute top-[-8px] right-[-8px] bg-black text-white dark:bg-white dark:text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">
-                            硬核
+                            {t('menu.hardcore_badge')}
                         </span>
 
                         <div className="p-3 bg-white dark:bg-zinc-800 rounded-full shadow-sm group-hover:scale-110 transition-transform mb-3">
                             <Brain className="w-8 h-8 text-zinc-900 dark:text-zinc-100" />
                         </div>
-                        <div className="font-bold text-base text-zinc-900 dark:text-zinc-100">超级电脑</div>
+                        <div className="font-bold text-base text-zinc-900 dark:text-zinc-100">{t('menu.super_mode')}</div>
                     </button>
                 </div>
 
@@ -86,7 +90,7 @@ export function ModeSelection({ onStartGame }: ModeSelectionProps) {
                         <InfinityIcon className="w-7 h-7" />
                     </div>
                     <span className="text-[10px] mt-1 font-semibold">
-                        {roundLimitEnabled ? '8 局制' : '无限制'}
+                        {roundLimitEnabled ? t('menu.round_limit_8') : t('menu.round_limit_unlimited')}
                     </span>
                 </button>
             </div>

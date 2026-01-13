@@ -1,5 +1,5 @@
 'use client';
-
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { usePokerGame } from '@/hooks/use-poker-game';
 import { GameTable } from '@/components/game/game-table';
@@ -12,6 +12,7 @@ import type { AIMode } from '@/lib/poker/types';
 
 
 export default function TexasHoldemPage() {
+  const { t } = useTranslation();
   const { gameState, startGame, exitGame, humanAction, startNextRound, resetGame, startNewSession, getLeaderboard, isAutoPlay, toggleAutoPlay } = usePokerGame();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -54,7 +55,7 @@ export default function TexasHoldemPage() {
 
   return (
     <div className="w-full h-dvh text-zinc-900 dark:text-zinc-100 selection:bg-zinc-300 dark:selection:bg-zinc-700 selection:text-black overflow-hidden flex flex-col overscroll-none">
-      <h1 className="sr-only">德州扑克</h1>
+      <h1 className="sr-only">{t('common.game_title')}</h1>
 
       <GameHeader
         roundLimit={gameState.roundLimit}

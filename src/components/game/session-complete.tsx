@@ -1,4 +1,6 @@
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useTranslation } from 'react-i18next';
 import { GithubIcon } from '@/components/icons/github-icon';
 import { Trophy } from 'lucide-react';
 import type { Player, AIMode } from '@/lib/poker/types';
@@ -20,6 +22,7 @@ export function SessionComplete({
     onStartNewSession,
     onExitGame
 }: SessionCompleteProps) {
+    const { t } = useTranslation();
     return (
         <div className="relative flex h-dvh items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
             {/* Top Right Controls */}
@@ -33,6 +36,7 @@ export function SessionComplete({
                 >
                     <GithubIcon className="w-5 h-5" />
                 </a>
+                <LanguageToggle />
                 <ThemeToggle />
             </div>
 
@@ -43,20 +47,20 @@ export function SessionComplete({
                     <div className="text-center space-y-2">
                         <div className="flex items-center justify-center gap-3">
                             <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
-                                {aiMode === 'super' ? '超级电脑 对局结束' : '普通电脑 对局结束'}
+                                {aiMode === 'super' ? t('result.super_end') : t('result.normal_end')}
                             </h1>
                         </div>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            {roundLimit ? `${roundLimit} 局已完成` : `无限制模式结束 (共 ${roundsPlayed} 局)`}
+                            {roundLimit ? t('result.limit_complete', { limit: roundLimit }) : t('result.unlimited_complete', { rounds: roundsPlayed })}
                         </p>
                     </div>
 
                     {/* Table Header */}
                     <div className="grid grid-cols-12 gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-700">
-                        <div className="col-span-2 text-center">排名</div>
-                        <div className="col-span-4">玩家</div>
-                        <div className="col-span-3 text-right">筹码</div>
-                        <div className="col-span-3 text-right">变化</div>
+                        <div className="col-span-2 text-center">{t('result.rank')}</div>
+                        <div className="col-span-4">{t('result.player')}</div>
+                        <div className="col-span-3 text-right">{t('result.chips')}</div>
+                        <div className="col-span-3 text-right">{t('result.change')}</div>
                     </div>
                 </div>
 
@@ -78,7 +82,7 @@ export function SessionComplete({
                                 )}
                             </div>
                             <div className="col-span-4 flex items-center text-zinc-900 dark:text-zinc-100">
-                                {player.name}
+                                {t(player.name)}
                             </div>
                             <div className="col-span-3 flex items-center justify-end text-zinc-900 dark:text-zinc-100">
                                 ${player.chips}
@@ -98,13 +102,13 @@ export function SessionComplete({
                             onClick={onStartNewSession}
                             className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-bold rounded-lg hover:opacity-80 active:scale-95 transition-all"
                         >
-                            继续下一轮
+                            {t('result.continue')}
                         </button>
                         <button
                             onClick={onExitGame}
                             className="px-6 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 active:scale-95 transition-all"
                         >
-                            返回主菜单
+                            {t('result.back_to_menu')}
                         </button>
                     </div>
                 </div>
