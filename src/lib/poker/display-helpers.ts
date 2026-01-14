@@ -40,8 +40,8 @@ export function getHandDetailedDescription(result: HandResult): string {
     const rank = result.rank;
     const cards = result.bestHand || result.winningCards;
 
-    // 获取格式化等级的助手
-    const r = (i: number) => cards[i].rank;
+    // 获取格式化等级的助手 (防御性: 防止数组越界)
+    const r = (i: number) => cards[i]?.rank ?? '?';
 
     switch (rank) {
         case HandRankType.STRAIGHT_FLUSH:

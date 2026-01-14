@@ -24,7 +24,12 @@ pnpm lint   # Lint code
 ```bash
 pnpm test:unit      # Run unit tests
 pnpm test:equity    # Verify Monte Carlo accuracy
-pnpm test:random    # Run random simulation
+pnpm test:random    # Run random simulation (Default 10 rounds)
+                    # Options:
+                    #   pnpm test:random -- --rounds=50
+                    #   pnpm test:random -- --extended  (Edge cases & Session resets)
+                    #   pnpm test:random -- --super-ai  (Test Super AI logic)
+                    #   pnpm test:random -- --stress    (Stress test 500+ rounds)
 pnpm test:battle    # AI Battle (Normal vs Super)
 pnpm test:training  # Generate training data (Self-play logs)
 ```
