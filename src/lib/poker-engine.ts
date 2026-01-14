@@ -80,6 +80,7 @@ export class PokerGameEngine {
   isSessionComplete: boolean = false;
   /** 初始筹码 (用于计算变化) */
   initialChips: number = GAME_RULES.INITIAL_CHIPS;
+  preflopRaiserId: number | null = null;
 
   constructor(onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void) {
     this.onChange = onChange;
@@ -103,6 +104,7 @@ export class PokerGameEngine {
     this.players = [];
 
     this.logs = [];
+    this.preflopRaiserId = null;
 
     // Initialize Random Expert Players
     const shuffledNames = [...BOT_NAMES].sort(() => 0.5 - Math.random());
@@ -142,6 +144,7 @@ export class PokerGameEngine {
 
   startNextRound() {
     if (this._isDestroyed) return;
+    this.preflopRaiserId = null;
 
     // 1. 先进行淘汰判定 (Check for eliminations)
     this.players.forEach(p => {
@@ -281,6 +284,14 @@ export class PokerGameEngine {
       result: evaluateHand([...p.hand, ...this.communityCards])
     }));
 
+    if (this.aiMode === 'super' && this.superAIConfig.opponentModeling) {
+      results.forEach(({ player, result }) => {
+        if (!player.isHuman) {
+          this._updateShowdownStrength(player, result.rank);
+        }
+      });
+    }
+
     // 2. 显示牌型描述
     results.forEach(({ player, result }) => {
       let info = this.getHandDetailedDescription(result);
@@ -348,6 +359,7 @@ export class PokerGameEngine {
   handleAction(player: Player, action: 'fold' | 'call' | 'raise' | 'allin', raiseAmount: number = 0) {
     if (player.status === 'folded' || player.isEliminated || player.status === 'allin') return;
 
+    const previousHighestBet = this.highestBet;
     const callAmount = this.highestBet - player.currentBet;
 
     switch (action) {
@@ -411,6 +423,10 @@ export class PokerGameEngine {
         }
         player.hasActed = true;
         break;
+    }
+
+    if (this.stage === 'preflop' && (action === 'raise' || action === 'allin') && player.currentBet > previousHighestBet) {
+      this.preflopRaiserId = player.id;
     }
 
     // ============ 对手建模：收集统计数据 ============
@@ -547,13 +563,15 @@ export class PokerGameEngine {
 
       if (!p.isHuman) {
         const currentRoundId = this.roundId;
+        const delay = this.testMode
+          ? 0
+          : this.isAutoPlayMode
+            ? UI_CONSTANTS.FAST.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.FAST.AI_THINKING_DELAY_VARIANCE
+            : UI_CONSTANTS.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.AI_THINKING_DELAY_VARIANCE;
         setTimeout(() => {
           if (this._isDestroyed || this.roundId !== currentRoundId) return;
           this.aiAction(p);
-        }, this.isAutoPlayMode
-          ? UI_CONSTANTS.FAST.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.FAST.AI_THINKING_DELAY_VARIANCE
-          : UI_CONSTANTS.AI_THINKING_DELAY_BASE + Math.random() * UI_CONSTANTS.AI_THINKING_DELAY_VARIANCE
-        );
+        }, delay);
       }
 
     } catch (e: unknown) {
@@ -874,7 +892,8 @@ export class PokerGameEngine {
       players: this.players,
       dealerIdx: this.dealerIdx,
       monteCarloSims: this.superAIConfig.monteCarloSims,
-      opponentProfiles: this.opponentProfiles
+      opponentProfiles: this.opponentProfiles,
+      preflopRaiserId: this.preflopRaiserId ?? undefined
     };
 
     const decision = makeSuperAIDecision(player, ctx);

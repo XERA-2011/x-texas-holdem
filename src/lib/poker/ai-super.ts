@@ -4,7 +4,7 @@
  */
 
 import { SPEECH_LINES, PREFLOP_HAND_STRENGTH } from './constants';
-import type { Player } from './types';
+import type { OpponentProfile, Player } from './types';
 import type { Card } from './card';
 import { calculateWinRateMonteCarlo, getPreflopStrength, getHandKey } from './monte-carlo';
 import { getPositionAdvantage, getBoardTexture } from './board-analysis';
@@ -119,7 +119,7 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
     // 个体对手档案利用
     // 寻找最后一个主动下注/加注的对手，针对其特点调整策略
-    let targetOpponentProfile = null;
+    let targetOpponentProfile: OpponentProfile | null = null;
     let isTargetLoose = false;
     let isTargetPassive = false;
     let isTargetTight = false;
@@ -129,7 +129,7 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         // 简单策略：取第一个非弃牌的对手作为目标
         const potentialRaiser = activeOpponents.find(p => p.currentBet >= ctx.highestBet);
         if (potentialRaiser) {
-            targetOpponentProfile = ctx.opponentProfiles.getProfile(potentialRaiser.id);
+            targetOpponentProfile = ctx.opponentProfiles.getProfile(potentialRaiser.id) ?? null;
             if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
                 isTargetLoose = targetOpponentProfile.vpip > 0.55;
                 isTargetPassive = targetOpponentProfile.aggression < 0.7;
@@ -137,6 +137,44 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
             }
         }
     }
+
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+    const clamp01 = (v: number) => clamp(v, 0, 1);
+    const getProfileCallTendency = (profile: OpponentProfile | null | undefined): number => {
+        if (!profile || profile.handsPlayed < 4) return 0.5;
+        const vpip = clamp01(profile.vpip ?? 0.5);
+        const pfr = clamp01(profile.pfr ?? 0.2);
+        const aggression = clamp(profile.aggression ?? 1.0, 0.3, 2.0);
+        const aggressionCalliness = 1 - (aggression - 0.3) / (2.0 - 0.3);
+        return clamp01(vpip * 0.55 + (1 - pfr) * 0.15 + aggressionCalliness * 0.30);
+    };
+
+    let fieldCallTendencySum = 0;
+    let fieldCallTendencyCount = 0;
+    let fieldShowdownAvgRankSum = 0;
+    let fieldShowdownAvgRankCount = 0;
+
+    for (const opp of activeOpponents) {
+        const profile = ctx.opponentProfiles.getProfile(opp.id);
+        if (!profile) continue;
+
+        fieldCallTendencySum += getProfileCallTendency(profile);
+        fieldCallTendencyCount++;
+
+        if (profile.showdownStrengths && profile.showdownStrengths.length > 0) {
+            const sum = profile.showdownStrengths.reduce((s: number, r: number) => s + r, 0);
+            fieldShowdownAvgRankSum += sum / profile.showdownStrengths.length;
+            fieldShowdownAvgRankCount++;
+        }
+    }
+
+    const fieldCallTendency = fieldCallTendencyCount > 0
+        ? fieldCallTendencySum / fieldCallTendencyCount
+        : (isCallingStation ? 0.65 : 0.5);
+    const fieldFoldTendency = clamp01(1 - fieldCallTendency);
+    const fieldShowdownAvgRank = fieldShowdownAvgRankCount > 0
+        ? fieldShowdownAvgRankSum / fieldShowdownAvgRankCount
+        : null;
 
     // C-Bet (连续下注)
     // 如果我们是翻前加注者，在翻牌有 C-Bet 优势
@@ -529,6 +567,15 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                         if (targetOpponentProfile && targetOpponentProfile.aggression > 1.3) {
                             bluffCatchChance += 0.20;
                         }
+                        if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
+                            const isTargetStation = targetOpponentProfile.vpip > 0.55 && targetOpponentProfile.aggression < 0.85;
+                            const isTargetNit = targetOpponentProfile.vpip < 0.28 && targetOpponentProfile.pfr < 0.18 && targetOpponentProfile.aggression < 0.95;
+                            const isTargetManiac = targetOpponentProfile.vpip > 0.60 && targetOpponentProfile.aggression > 1.45;
+
+                            if (isTargetStation) bluffCatchChance -= 0.15;
+                            if (isTargetNit) bluffCatchChance -= 0.20;
+                            if (isTargetManiac) bluffCatchChance += 0.15;
+                        }
                         // 面对被动对手，减少抓诈唬
                         if (isTargetPassive) {
                             bluffCatchChance -= 0.20;
@@ -536,6 +583,10 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                         // 持有阻断牌时更愿意抓诈唬
                         if (hasNutBlocker) {
                             bluffCatchChance += 0.15;
+                        }
+
+                        if (fieldShowdownAvgRank !== null && fieldShowdownAvgRank < 1.2) {
+                            bluffCatchChance -= 0.05;
                         }
 
                         action = rnd < bluffCatchChance ? 'call' : 'fold';
@@ -609,14 +660,15 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
             // 河牌使用极化尺寸策略
             if (winRate > 0.85) {
                 // 坚果牌：使用超池下注 (Overbet) 最大化价值
-                if (rnd < 0.35) {
+                const overbetChance = clamp(0.35 + (fieldCallTendency - 0.5) * 0.8, 0.20, 0.70);
+                if (rnd < overbetChance) {
                     betFactor = 1.3 + Math.random() * 0.7;  // 130-200% 底池
                 } else {
                     betFactor = 0.9 + Math.random() * 0.3;  // 90-120% 底池
                 }
             } else if (winRate > 0.65) {
                 // 强牌但非坚果：中等尺寸获取价值
-                betFactor = 0.65 + Math.random() * 0.25;  // 65-90% 底池
+                betFactor = 0.65 + Math.random() * 0.25 + clamp((fieldCallTendency - 0.5) * 0.35, -0.05, 0.15);  // 65-90% 底池
             } else if (isBluffing) {
                 // 诈唬：使用与价值下注相同的尺寸 (不可读)
                 // 价值/诈唬比例约 2:1，此处已经是诈唬情况
@@ -639,10 +691,39 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
             }
         }
 
-        // 5. C-Bet 尺寸：通常较小
-        if (shouldConsiderCBet && !isBluffing) {
-            betFactor = 0.4 + Math.random() * 0.2;  // 40-60% 底池
+        if (!isBluffing) {
+            betFactor += clamp((fieldCallTendency - 0.5) * 0.55, -0.10, 0.25);
+            if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
+                betFactor += clamp((getProfileCallTendency(targetOpponentProfile) - 0.5) * 0.45, -0.08, 0.18);
+            }
+        } else {
+            betFactor -= clamp((fieldCallTendency - 0.5) * 0.85, 0, 0.30);
+            if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
+                betFactor -= clamp((getProfileCallTendency(targetOpponentProfile) - 0.5) * 0.70, 0, 0.30);
+            }
         }
+
+        if (isBluffing) {
+            const maxBluffFactor = fieldCallTendency > 0.62 ? 0.75 : 1.35;
+            betFactor = Math.min(betFactor, maxBluffFactor);
+        }
+
+        // 5. C-Bet 尺寸
+        if (shouldConsiderCBet) {
+            if (isBluffing) {
+                betFactor = 0.33 + Math.random() * 0.17;
+            } else {
+                const base = fieldCallTendency > 0.62 ? 0.52 : 0.42;
+                betFactor = base + Math.random() * 0.18;
+                if (boardTexture > 0.6) betFactor += 0.08;
+            }
+        }
+
+        if (isBluffing && fieldFoldTendency > 0.65) {
+            betFactor = Math.min(betFactor, 0.70);
+        }
+
+        betFactor = clamp(betFactor, 0.25, 2.2);
 
         let betSize = ctx.pot * betFactor;
         const minRaise = Math.max(ctx.bigBlind, ctx.lastRaiseAmount);

@@ -276,8 +276,9 @@ async function executeTurnWithSuperAI(
 
 
 // --- CLI Execution ---
-const args = process.argv.slice(2);
-const rounds = args.length > 0 ? parseInt(args[0], 10) : 10;
+const args = process.argv.slice(2).filter(a => a !== '--');
+const roundsArg = args.find(a => /^\d+$/.test(a));
+const rounds = roundsArg ? parseInt(roundsArg, 10) : 10;
 
 runTrainingGames(rounds).then(() => {
     // console.log("Done.");
