@@ -266,7 +266,6 @@ class ExtendedTester extends ScenarioTester {
                 // Silent mode - minimal logging
                 const oldLog = console.log;
                 if (i % 50 !== 0) {
-                    // eslint-disable-next-line @typescript-eslint/no-empty-function
                     console.log = () => { };
                 }
 
