@@ -94,6 +94,8 @@ async function runFullAiGame(tester: ScenarioTester, statsMap: Map<string, Playe
 
     // Ensure Super AI Mode
     tester.setAIMode('super');
+    (engine as unknown as { processTurn: () => void }).processTurn = () => { };
+    (engine as unknown as { speakRandom: () => void }).speakRandom = () => { };
 
     const startChips = new Map<string, number>();
     engine.players.forEach(p => startChips.set(p.name, p.chips));
@@ -141,7 +143,6 @@ async function runFullAiGame(tester: ScenarioTester, statsMap: Map<string, Playe
         }
 
         steps++;
-        await new Promise(r => setTimeout(r, 0)); // Yield
     }
 
     // Update Stats at end of game
@@ -210,24 +211,21 @@ async function executeTurnWithSuperAI(
 ) {
     const engine = tester.engine;
     const oldStage = engine.stage;
-    const previousHighestBet = engine.highestBet; // Capture state BEFORE action
+    const previousHighestBet = engine.highestBet;
+    const previousCurrentBet = player.currentBet;
+    const previousTotalHandBet = player.totalHandBet;
+    const previousStatus = player.status;
 
     // Use Engine's internal AI logic retrieval
     const runAI = (engine as TestEngine)._originalAiAction;
     if (runAI) {
-        // Mock setTimeout to force synchronous execution for AI logic
-        const originalTimeout = global.setTimeout;
-        global.setTimeout = ((fn: () => void) => fn()) as unknown as typeof global.setTimeout;
-
-        try {
-            runAI.call(engine, player);
-        } finally {
-            global.setTimeout = originalTimeout;
-        }
+        runAI.call(engine, player);
     }
 
     // Capture Action Log & Update Stats
-    const amount = player.currentBet;
+    const contributed = player.totalHandBet - previousTotalHandBet;
+    const callAmtBefore = previousHighestBet - previousCurrentBet;
+
     let actionType = 'call';
     let actionDesc = '';
 
@@ -237,30 +235,25 @@ async function executeTurnWithSuperAI(
     }
     const actions = playerActions.get(player.name)!;
 
-    if (player.status === 'folded') {
+    if (player.status === 'folded' && previousStatus !== 'folded') {
         actionType = 'fold';
     } else if (player.status === 'allin') {
         actionType = 'allin';
-        actionDesc = `(Total ${amount})`;
-        actions.add('vpip'); // All-in counts as VPIP
-        // If raised (all-in raise), check below logic via raise amount, but generally all-in is strong
-        if (amount > previousHighestBet && engine.stage === 'preflop') actions.add('pfr');
-
+        actionDesc = `(Total ${previousCurrentBet + Math.max(0, contributed)})`;
+        if (oldStage === 'preflop' && contributed > 0) actions.add('vpip');
+        if (oldStage === 'preflop' && contributed > callAmtBefore) actions.add('pfr');
     } else {
-        if (amount > previousHighestBet) {
+        if (contributed === 0 && callAmtBefore === 0) {
+            actionType = 'check';
+        } else if (contributed > callAmtBefore) {
             actionType = 'raise';
-            actionDesc = `(to ${amount})`;
-            actions.add('vpip');
-            if (engine.stage === 'preflop') actions.add('pfr');
+            actionDesc = `(to ${previousCurrentBet + contributed})`;
+            if (oldStage === 'preflop' && contributed > 0) actions.add('vpip');
+            if (oldStage === 'preflop') actions.add('pfr');
         } else {
-            if (amount === 0 && previousHighestBet === 0) {
-                actionType = 'check';
-                // Check is NOT VPIP
-            } else {
-                actionType = 'call';
-                actionDesc = `(${amount})`;
-                if (amount > 0) actions.add('vpip'); // Calling a bet is VPIP
-            }
+            actionType = 'call';
+            actionDesc = `(${contributed})`;
+            if (oldStage === 'preflop' && contributed > 0) actions.add('vpip');
         }
     }
 

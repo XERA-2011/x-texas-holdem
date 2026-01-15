@@ -199,17 +199,22 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     // 偷盲注检测
     // 检测是否处于偷盲场景：翻前 + 位置靠后 + 前面无人加注
     const isStealPosition = posAdvantage > 0.65; // 稍微放宽偷盲位置定义
-    const noRaisersYet = ctx.raisesInRound === 0 && ctx.highestBet <= ctx.bigBlind;
-    const isStealScenario = isPreflop && isStealPosition && noRaisersYet;
+    const noRaisersYet = ctx.raisesInRound === 0 && ctx.highestBet === ctx.bigBlind;
+    const bigBlindCallersCount = noRaisersYet
+        ? ctx.players.filter(p => !p.isEliminated && p.status !== 'folded' && p.currentBet === ctx.bigBlind).length
+        : 0;
+    const hasLimpers = noRaisersYet && bigBlindCallersCount > 1;
+    const isUnopenedPot = noRaisersYet && !hasLimpers;
+    const isStealScenario = isPreflop && isStealPosition && isUnopenedPot;
 
     // 隔离加注 (Isolation Raise) 场景检测
     // 前面有 1-3 个平跟者(Limpers)，且我们在有利位置
     // 目的：加注赶跑弱牌，或者与弱牌单挑
-    const isIsolationScenario = isPreflop && ctx.raisesInRound === 0 && activeOpponentsCount > 1 && callAmt <= ctx.bigBlind && posAdvantage > 0.5;
+    const isIsolationScenario = isPreflop && hasLimpers && posAdvantage > 0.5;
 
     // ============ 3-Bet / 再加注检测 ============
     const isFacing3Bet = ctx.raisesInRound >= 2;
-    const isFacingRaise = ctx.raisesInRound >= 1 && callAmt > ctx.bigBlind * 2;
+    const isFacingRaise = ctx.raisesInRound >= 1 && isPreflop && ctx.highestBet > ctx.bigBlind && callAmt > 0;
 
     // ============ 增强 3-Bet 策略 ============
     const handKey = getHandKey(player.hand);
@@ -409,9 +414,16 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         const isSmall3Bet = callAmt <= ctx.bigBlind * 3;
         const isGreatOdds = callCostRatio < 0.25;
 
+        const effectiveStackBB = (player.chips + player.currentBet) / ctx.bigBlind;
+
         // 面对3-Bet时收紧范围
-        if (winRate > 0.70) {
-            action = rnd < 0.6 ? 'allin' : 'call'; // 4-Bet or Call
+        if (winRate > 0.72) {
+            if (effectiveStackBB > 35) {
+                action = 'raise';
+                isBluffing = false;
+            } else {
+                action = rnd < 0.6 ? 'allin' : 'call';
+            }
         } else if (winRate > adjustedThreshold) {
             action = 'call';
         } else if ((isSmall3Bet || isGreatOdds) && winRate > 0.3) {
@@ -458,9 +470,14 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     else if (isPreflop ? (preflopRawStrength >= 0.60) : (winRate > (0.65 - totalAdjustment))) {
         // Preflop Strong: 88+, AK, AQ, AJ, KQ, etc.
         // Action: Mostly Raise
-        if (rnd < 0.85) action = 'raise'; // Increased from 0.70 to 0.85 for Preflop aggression
-        else if (rnd < 0.95) action = 'call';
-        else action = 'allin';
+        if (isPreflop) {
+            if (rnd < 0.88) action = 'raise';
+            else action = 'call';
+        } else {
+            if (rnd < 0.70) action = 'raise';
+            else if (rnd < 0.90) action = 'call';
+            else action = 'allin';
+        }
     }
     // C. 边缘牌 / 中等牌 (Marginal)
     else if (finalWinRate > potOdds + 0.05) {
@@ -619,6 +636,13 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         if (action === 'raise' || action === 'call') action = 'allin';
     }
 
+    if (isPreflop && action === 'allin') {
+        const effectiveStackBB = (player.chips + player.currentBet) / ctx.bigBlind;
+        if (ctx.raisesInRound === 0 && effectiveStackBB > 25) {
+            action = 'raise';
+        }
+    }
+
     if (action === 'raise') {
         const minRaise = Math.max(ctx.bigBlind, ctx.lastRaiseAmount);
         if (player.chips <= callAmt + minRaise) {
@@ -629,6 +653,45 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     // 下注尺寸 (Bet Sizing) 优化 - 增强极化范围策略
     let raiseAmount: number | undefined;
     if (action === 'raise') {
+        if (isPreflop) {
+            const effectiveStackBB = (player.chips + player.currentBet) / ctx.bigBlind;
+            const limpersExcludingBB = hasLimpers ? Math.max(0, bigBlindCallersCount - 1) : 0;
+
+            let targetTotal = ctx.bigBlind * 2.75;
+            if (ctx.raisesInRound === 0) {
+                if (isUnopenedPot) {
+                    if (posAdvantage < 0.40) targetTotal = ctx.bigBlind * 3.0;
+                    else if (posAdvantage < 0.65) targetTotal = ctx.bigBlind * 2.75;
+                    else targetTotal = ctx.bigBlind * 2.5;
+                } else if (hasLimpers) {
+                    targetTotal = ctx.bigBlind * (3 + limpersExcludingBB);
+                    if (posAdvantage > 0.65) targetTotal -= ctx.bigBlind * 0.5;
+                }
+            } else if (ctx.raisesInRound === 1) {
+                const oop = posAdvantage < 0.5;
+                const mult = oop ? 3.6 : 3.0;
+                targetTotal = ctx.highestBet * mult;
+                if (hasLimpers) targetTotal += limpersExcludingBB * ctx.bigBlind * 0.5;
+            } else {
+                const oop = posAdvantage < 0.5;
+                const mult = oop ? 2.7 : 2.3;
+                targetTotal = ctx.highestBet * mult;
+            }
+
+            const maxTotal = player.currentBet + player.chips;
+            targetTotal = Math.min(targetTotal, maxTotal);
+
+            if (effectiveStackBB > 35 && ctx.raisesInRound === 0 && targetTotal >= maxTotal * 0.9) {
+                targetTotal = Math.max(ctx.bigBlind * 2.5, Math.floor(maxTotal * 0.7));
+            }
+
+            const minTotal = ctx.highestBet + Math.max(ctx.bigBlind, ctx.lastRaiseAmount);
+            targetTotal = Math.max(targetTotal, minTotal);
+
+            raiseAmount = Math.floor(targetTotal - ctx.highestBet);
+            if (raiseAmount < ctx.bigBlind) raiseAmount = ctx.bigBlind;
+            if (raiseAmount > player.chips - callAmt) raiseAmount = player.chips - callAmt;
+        } else {
         let betFactor = 0.6; // 默认 60% 底池
         const isRiver = ctx.stage === 'river';
 
@@ -731,6 +794,7 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         if (betSize > player.chips) betSize = player.chips;
 
         raiseAmount = Math.floor(betSize);
+        }
     }
 
     // 发言系统
