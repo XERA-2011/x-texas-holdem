@@ -307,7 +307,60 @@ async function runScenarioTests(): Promise<string[]> {
             { 'You': 1000, 'Alex': 0 }
         );
 
+        // --- Scenario 20: Low Chips Blind Post ($1 Short Stack) ---
+        // 测试：玩家只剩 $1 时全押，应能正常结算
+        await tester.runStaticScenario(
+            "20. Low Chips All-in ($1 Player)",
+            {
+                players: [
+                    { name: 'You', chips: 1, hand: ['As', 'Kh'] },       // $1 玩家，强牌
+                    { name: 'Alex', chips: 1000, hand: ['Qc', 'Qd'] }    // 对方
+                ],
+                board: ['Ac', 'Kd', '2c', '5h', '7s']  // You 拿到两对 A-K
+            },
+            'all-in-all',
+            // You 只有 $1 全押，形成 $2 主池
+            // 主池归 You (两对 > 一对)
+            // Alex 多余筹码 $999 返还
+            { 'You': 2, 'Alex': 999 }
+        );
+
+        // --- Scenario 21: Low Chips Call ($1 vs $10 Big Blind) ---
+        // 测试：玩家只剩 $1 面对 $10 大盲注的跟注行为
+        tester.log("21. Low Chips Call ($1 Player Calls $10 BB - Auto All-in)");
+        tester.setupScenario([
+            { name: 'You', chips: 1, hand: ['Ah', 'Kh'] },    // 只有 $1
+            { name: 'Alex', chips: 1000, hand: ['2c', '3d'] } // 对手弱牌
+        ], ['As', 'Kd', 'Qh', '7c', '2s']);  // You 拿到顶对
+
+        // 设置盲注环境：Alex 已下大盲 $10
+        const pAlex21 = tester.engine.players.find(p => p.name === 'Alex')!;
+        pAlex21.chips -= 10;
+        pAlex21.currentBet = 10;
+        pAlex21.totalHandBet = 10;
+        tester.engine.pot = 10;
+        tester.engine.highestBet = 10;
+
+        // You 尝试 call，但只有 $1，应该自动变成 all-in
+        const pYou21 = tester.engine.players.find(p => p.name === 'You')!;
+        tester.engine.currentTurnIdx = pYou21.id;
+
+        tester.act('You', 'call');  // Call 时筹码不足，应用 Math.min(10, 1) = $1
+
+        // 验证 You 状态
+        if (pYou21.chips !== 0) {
+            throw new Error(`Player should have 0 chips after call, got ${pYou21.chips}`);
+        }
+        if (pYou21.status !== 'allin') {
+            throw new Error(`Player should be all-in after calling with $1, got ${pYou21.status}`);
+        }
+        if (pYou21.currentBet !== 1) {
+            throw new Error(`Player bet should be 1, got ${pYou21.currentBet}`);
+        }
+        tester.log("Passed: $1 player correctly went all-in when calling.");
+
         // --- Scenario 22: User Provided Complex History Verification ---
+
         tester.log("22. User Provided History (Side Pot & Folded Equity)");
 
         // Fix: Init with empty board to start at Preflop. Mock deck to deal specific cards.
