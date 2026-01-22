@@ -10,6 +10,7 @@ A lightweight, single-player Texas Hold'em game powered by advanced AI. No downl
 |----------|-----|
 | Cloudflare Pages | [x-texas-holdem.pages.dev](https://x-texas-holdem.pages.dev/) |
 | Vercel | [x-texas-holdem.vercel.app](https://x-texas-holdem.vercel.app/) |
+| Netlify | [x-texas-holdem.netlify.app](https://x-texas-holdem.netlify.app/) |
 | GitHub Pages | [xera-2011.github.io/x-texas-holdem](https://xera-2011.github.io/x-texas-holdem/) |
 
 ## 🛠️ Commands
