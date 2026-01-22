@@ -118,19 +118,50 @@ export function GameLog({ logs, players, communityCards }: LogProps) {
                 text += `[${l.type.toUpperCase()}] ${clean}\n`;
               });
 
-              // Modern clipboard API
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                  setCopyState('history_copied');
-                  setTimeout(() => setCopyState('idle'), 2000);
-                }).catch((e) => {
-                  console.error(e);
-                  alert(t('common.copy_fail'));
-                });
-              } else {
-                // Non-secure context or incompatible browser
-                alert(t('common.copy_fail'));
-              }
+              // 尝试复制
+              const copyToClipboard = async (str: string) => {
+                try {
+                  // 优先尝试现代 API (HTTPS 下可用)
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(str);
+                    setCopyState('history_copied');
+                    setTimeout(() => setCopyState('idle'), 2000);
+                    return;
+                  }
+                  throw new Error('Clipboard API not available');
+                } catch {
+                  // 降级方案：使用 textarea + execCommand (HTTP 下可用)
+                  try {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = str;
+
+                    // 确保 textarea 不可见且不影响布局
+                    textArea.style.top = "0";
+                    textArea.style.left = "0";
+                    textArea.style.position = "fixed";
+                    textArea.style.opacity = "0";
+
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+
+                    if (successful) {
+                      setCopyState('history_copied');
+                      setTimeout(() => setCopyState('idle'), 2000);
+                    } else {
+                      throw new Error('execCommand failed');
+                    }
+                  } catch (fallbackErr) {
+                    console.error('Copy failed:', fallbackErr);
+                    alert(t('common.copy_fail'));
+                  }
+                }
+              };
+
+              copyToClipboard(text);
             }}
             className={`text-[10px] px-2 py-0.5 rounded transition-all duration-300 ${copyState === 'history_copied'
               ? 'bg-green-500 text-white'
