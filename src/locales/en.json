@@ -1,4 +1,8 @@
 {
+    "metadata": {
+        "title": "Texas Hold'em | AI Challenge",
+        "description": "The ultimate Texas Hold'em experience for quick breaks! No download, no login, just play. Offline, free, and challenging AI opponents. Enjoy pure poker fun anytime, anywhere."
+    },
     "log": {
         "dealer_blind": "Dealer {{name}}, Blinds ${{sb}}/${{bb}}",
         "fold_win_refund": "{{name}} returned ${{amount}} (Uncalled)",

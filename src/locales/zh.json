@@ -1,4 +1,8 @@
 {
+    "metadata": {
+        "title": "单机德州扑克 | 纯单人AI对战",
+        "description": "纯单机，最安全的德州扑克练习工具。挑战高智商AI，随时暂停。绿色健康，仅供娱乐。"
+    },
     "log": {
         "dealer_blind": "庄家 {{name}}, 盲注 ${{sb}}/${{bb}}",
         "fold_win_refund": "{{name}} 拿回 ${{amount}} (未被跟注)",

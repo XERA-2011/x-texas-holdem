@@ -2,6 +2,7 @@
 
 import '@/lib/i18n';
 import { ReactNode, useEffect, useState } from 'react';
+import { MetadataUpdater } from './metadata-updater';
 
 export function I18nProvider({ children }: { children: ReactNode }) {
     const [mounted, setMounted] = useState(false);
@@ -19,5 +20,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         );
     }
 
-    return <>{children}</>;
+    return (
+        <>
+            <MetadataUpdater />
+            {children}
+        </>
+    );
 }
