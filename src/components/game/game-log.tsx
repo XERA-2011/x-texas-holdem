@@ -21,7 +21,8 @@ interface LogProps {
 const c = (r: Rank, s: Suit) => new Card(r, s);
 
 const HAND_PATTERNS = [
-  { key: 'straight_flush', cards: [c('A', '♠'), c('K', '♠'), c('Q', '♠'), c('J', '♠'), c('T', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { key: 'royal_flush', cards: [c('A', '♠'), c('K', '♠'), c('Q', '♠'), c('J', '♠'), c('T', '♠')], winningIndices: [0, 1, 2, 3, 4] },
+  { key: 'straight_flush', cards: [c('9', '♠'), c('8', '♠'), c('7', '♠'), c('6', '♠'), c('5', '♠')], winningIndices: [0, 1, 2, 3, 4] },
   { key: 'quads', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('A', '♦'), c('K', '♠')], winningIndices: [0, 1, 2, 3] },
   { key: 'full_house', cards: [c('A', '♠'), c('A', '♥'), c('A', '♣'), c('K', '♠'), c('K', '♥')], winningIndices: [0, 1, 2, 3, 4] },
   { key: 'flush', cards: [c('A', '♠'), c('J', '♠'), c('8', '♠'), c('5', '♠'), c('2', '♠')], winningIndices: [0, 1, 2, 3, 4] },

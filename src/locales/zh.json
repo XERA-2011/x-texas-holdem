@@ -101,15 +101,16 @@
         "back_to_menu": "返回主菜单"
     },
     "hands": {
-        "straight_flush": "1. 同花顺 (Straight Flush)",
-        "quads": "2. 四条 (Quads)",
-        "full_house": "3. 葫芦 (Full House)",
-        "flush": "4. 同花 (Flush)",
-        "straight": "5. 顺子 (Straight)",
-        "trips": "6. 三条 (Trips)",
-        "two_pair": "7. 两对 (Two Pair)",
-        "pair": "8. 对子 (Pair)",
-        "high_card": "9. 高牌 (High Card)"
+        "royal_flush": "1. 皇家同花顺 (Royal Flush)",
+        "straight_flush": "2. 同花顺 (Straight Flush)",
+        "quads": "3. 四条 (Quads)",
+        "full_house": "4. 葫芦 (Full House)",
+        "flush": "5. 同花 (Flush)",
+        "straight": "6. 顺子 (Straight)",
+        "trips": "7. 三条 (Trips)",
+        "two_pair": "8. 两对 (Two Pair)",
+        "pair": "9. 对子 (Pair)",
+        "high_card": "10. 高牌 (High Card)"
     },
     "bot_names": {
         "0": "亚历克斯",

@@ -101,15 +101,16 @@
         "back_to_menu": "Back to Menu"
     },
     "hands": {
-        "straight_flush": "1. Straight Flush",
-        "quads": "2. Quads",
-        "full_house": "3. Full House",
-        "flush": "4. Flush",
-        "straight": "5. Straight",
-        "trips": "6. Trips",
-        "two_pair": "7. Two Pair",
-        "pair": "8. Pair",
-        "high_card": "9. High Card"
+        "royal_flush": "1. Royal Flush",
+        "straight_flush": "2. Straight Flush",
+        "quads": "3. Quads",
+        "full_house": "4. Full House",
+        "flush": "5. Flush",
+        "straight": "6. Straight",
+        "trips": "7. Trips",
+        "two_pair": "8. Two Pair",
+        "pair": "9. Pair",
+        "high_card": "10. High Card"
     },
     "bot_names": {
         "0": "Alex",
