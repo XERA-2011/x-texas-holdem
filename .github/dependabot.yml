@@ -28,6 +28,11 @@ updates:
       major-updates:
         update-types:
           - "major"
+    # Block known-breaking major updates
+    ignore:
+      - dependency-name: "eslint"
+        update-types:
+          - "version-update:semver-major"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
