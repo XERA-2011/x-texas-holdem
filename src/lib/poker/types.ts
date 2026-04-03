@@ -1,7 +1,18 @@
 import type { Card } from './card';
 
 import { PersonaType } from './base-types';
-export type { Suit, Rank, PersonaType, AIMode, SuperAIConfig, OpponentProfile, GameConfig } from './base-types';
+export type {
+    Suit,
+    Rank,
+    PersonaType,
+    AIMode,
+    SuperAIConfig,
+    OpponentProfile,
+    GameConfig,
+    SuperAITuning,
+    SuperAIEVTuning,
+    SuperAITargetSourceWeights
+} from './base-types';
 
 /**
  * 德州扑克牌型等级 (从小到大)

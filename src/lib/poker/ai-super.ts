@@ -65,9 +65,33 @@ const SUPER_AI_TUNING = {
         actionNoise: 0.05,
         callingStationBluffPenalty: 0.35
     }
-} as const;
+};
 
-type ResolvedSuperAITuning = typeof SUPER_AI_TUNING;
+type ResolvedSuperAITuning = {
+    targetSourceWeights: {
+        streetAggressor: number;
+        previousStreetAggressor: number;
+        lastAggressor: number;
+        fallbackTopBetter: number;
+    };
+    ev: {
+        foldBase: number;
+        checkValue: number;
+        checkPosition: number;
+        callBase: number;
+        dangerCallPenalty: number;
+        raisePressure: number;
+        raisePosition: number;
+        raiseValueEdge: number;
+        bluffRaiseBase: number;
+        allInBase: number;
+        shallowAllInBonus: number;
+        deepOpenAllInPenalty: number;
+        priorBoost: number;
+        actionNoise: number;
+        callingStationBluffPenalty: number;
+    };
+};
 
 function resolveSuperAITuning(tuning?: SuperAITuning): ResolvedSuperAITuning {
     return {
