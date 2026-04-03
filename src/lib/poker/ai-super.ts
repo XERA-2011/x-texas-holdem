@@ -5,6 +5,7 @@
 
 import { SPEECH_LINES, PREFLOP_HAND_STRENGTH } from './constants';
 import type { OpponentProfile, Player } from './types';
+import type { SuperAITuning } from './base-types';
 import type { Card } from './card';
 import { calculateWinRateMonteCarlo, getPreflopStrength, getHandKey } from './monte-carlo';
 import { getPositionAdvantage, getBoardTexture } from './board-analysis';
@@ -25,6 +26,10 @@ export interface SuperAIContext {
     monteCarloSims: number;
     opponentProfiles: OpponentProfileManager;
     preflopRaiserId?: number;  // 翻前加注者 ID，用于 C-Bet 逻辑
+    streetAggressorId?: number; // 当前街最后一次主动进攻者
+    previousStreetAggressorId?: number; // 上一条街最后一次主动进攻者
+    lastAggressorId?: number; // 跨街最近一次主动进攻者
+    tuning?: SuperAITuning;
 }
 
 /** 超级 AI 决策结果 */
@@ -36,10 +41,52 @@ export interface SuperAIDecision {
     shouldSpeak?: boolean;
 }
 
+const SUPER_AI_TUNING = {
+    targetSourceWeights: {
+        streetAggressor: 1.0,
+        previousStreetAggressor: 0.7,
+        lastAggressor: 0.5,
+        fallbackTopBetter: 0.45
+    },
+    ev: {
+        foldBase: 2.4,
+        checkValue: 0.7,
+        checkPosition: 0.2,
+        callBase: 2.1,
+        dangerCallPenalty: 0.5,
+        raisePressure: 1.2,
+        raisePosition: 0.5,
+        raiseValueEdge: 2.0,
+        bluffRaiseBase: 0.18,
+        allInBase: 2.3,
+        shallowAllInBonus: 0.28,
+        deepOpenAllInPenalty: 0.8,
+        priorBoost: 0.28,
+        actionNoise: 0.05,
+        callingStationBluffPenalty: 0.35
+    }
+} as const;
+
+type ResolvedSuperAITuning = typeof SUPER_AI_TUNING;
+
+function resolveSuperAITuning(tuning?: SuperAITuning): ResolvedSuperAITuning {
+    return {
+        targetSourceWeights: {
+            ...SUPER_AI_TUNING.targetSourceWeights,
+            ...(tuning?.targetSourceWeights ?? {})
+        },
+        ev: {
+            ...SUPER_AI_TUNING.ev,
+            ...(tuning?.ev ?? {})
+        }
+    };
+}
+
 /**
  * 超级电脑决策逻辑 (Enhanced)
  */
 export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperAIDecision {
+    const tuning = resolveSuperAITuning(ctx.tuning);
     const isPreflop = ctx.stage === 'preflop';
 
     // 1. 获取胜率：翻前查表 (快速)，翻后蒙特卡洛 (精确)
@@ -117,27 +164,6 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
     // 如果对手是典型的跟注站（高 VPIP，低激进度），减少 bluff，增加 value bet
     const isCallingStation = oppStats.avgVpip > 0.6 && oppStats.avgAggression < 0.8;
 
-    // 个体对手档案利用
-    // 寻找最后一个主动下注/加注的对手，针对其特点调整策略
-    let targetOpponentProfile: OpponentProfile | null = null;
-    let isTargetLoose = false;
-    let isTargetPassive = false;
-    let isTargetTight = false;
-
-    // 如果面对加注，尝试找到最有可能的加注者
-    if (ctx.raisesInRound > 0) {
-        // 简单策略：取第一个非弃牌的对手作为目标
-        const potentialRaiser = activeOpponents.find(p => p.currentBet >= ctx.highestBet);
-        if (potentialRaiser) {
-            targetOpponentProfile = ctx.opponentProfiles.getProfile(potentialRaiser.id) ?? null;
-            if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
-                isTargetLoose = targetOpponentProfile.vpip > 0.55;
-                isTargetPassive = targetOpponentProfile.aggression < 0.7;
-                isTargetTight = targetOpponentProfile.vpip < 0.30;
-            }
-        }
-    }
-
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
     const clamp01 = (v: number) => clamp(v, 0, 1);
     const getProfileCallTendency = (profile: OpponentProfile | null | undefined): number => {
@@ -148,6 +174,81 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
         const aggressionCalliness = 1 - (aggression - 0.3) / (2.0 - 0.3);
         return clamp01(vpip * 0.55 + (1 - pfr) * 0.15 + aggressionCalliness * 0.30);
     };
+
+    // 个体对手档案利用（多来源加权）
+    let targetOpponentProfile: OpponentProfile | null = null; // 保留最主要目标供原有逻辑复用
+    let isTargetLoose = false;
+    let isTargetPassive = false;
+    let isTargetTight = false;
+    let targetOpponentAggression = 1.0;
+    let targetOpponentVpip = 0.5;
+    let targetOpponentPfr = 0.22;
+    let targetOpponentCallTendency = 0.5;
+    let targetSampleWeight = 0;
+
+    if (ctx.raisesInRound > 0) {
+        const candidateEntries: Array<{ id: number; weight: number }> = [];
+        const pushCandidate = (id: number | undefined, weight: number) => {
+            if (id === undefined || id === player.id) return;
+            if (!activeOpponents.some(opp => opp.id === id)) return;
+            const existing = candidateEntries.find(entry => entry.id === id);
+            if (existing) {
+                existing.weight = Math.max(existing.weight, weight);
+            } else {
+                candidateEntries.push({ id, weight });
+            }
+        };
+
+        pushCandidate(ctx.streetAggressorId, tuning.targetSourceWeights.streetAggressor);
+        pushCandidate(ctx.previousStreetAggressorId, tuning.targetSourceWeights.previousStreetAggressor);
+        pushCandidate(ctx.lastAggressorId, tuning.targetSourceWeights.lastAggressor);
+
+        if (candidateEntries.length === 0) {
+            const maxBet = Math.max(0, ...activeOpponents.map(opp => opp.currentBet));
+            const potentialRaiser = activeOpponents.find(opp => opp.currentBet === maxBet && maxBet > 0);
+            pushCandidate(potentialRaiser?.id, tuning.targetSourceWeights.fallbackTopBetter);
+        }
+
+        candidateEntries.sort((a, b) => b.weight - a.weight);
+        targetOpponentProfile = candidateEntries.length > 0
+            ? (ctx.opponentProfiles.getProfile(candidateEntries[0].id) ?? null)
+            : null;
+
+        for (const entry of candidateEntries) {
+            const profile = ctx.opponentProfiles.getProfile(entry.id);
+            if (!profile || profile.handsPlayed < 2) continue;
+            const sampleWeight = entry.weight * Math.min(1, profile.handsPlayed / 12);
+            targetSampleWeight += sampleWeight;
+            targetOpponentVpip += (profile.vpip - 0.5) * sampleWeight;
+            targetOpponentPfr += (profile.pfr - 0.22) * sampleWeight;
+            targetOpponentAggression += (profile.aggression - 1.0) * sampleWeight;
+            targetOpponentCallTendency += (getProfileCallTendency(profile) - 0.5) * sampleWeight;
+        }
+
+        if (targetSampleWeight > 0) {
+            targetOpponentVpip = clamp01(targetOpponentVpip / (1 + targetSampleWeight));
+            targetOpponentPfr = clamp01(targetOpponentPfr / (1 + targetSampleWeight));
+            targetOpponentAggression = clamp(targetOpponentAggression / (1 + targetSampleWeight), 0.3, 2.2);
+            targetOpponentCallTendency = clamp01(targetOpponentCallTendency / (1 + targetSampleWeight));
+            isTargetLoose = targetOpponentVpip > 0.55;
+            isTargetPassive = targetOpponentAggression < 0.7;
+            isTargetTight = targetOpponentVpip < 0.30;
+        } else if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
+            isTargetLoose = targetOpponentProfile.vpip > 0.55;
+            isTargetPassive = targetOpponentProfile.aggression < 0.7;
+            isTargetTight = targetOpponentProfile.vpip < 0.30;
+            targetOpponentVpip = targetOpponentProfile.vpip;
+            targetOpponentPfr = targetOpponentProfile.pfr;
+            targetOpponentAggression = targetOpponentProfile.aggression;
+            targetOpponentCallTendency = getProfileCallTendency(targetOpponentProfile);
+        } else {
+            targetOpponentCallTendency = isCallingStation ? 0.65 : 0.5;
+            if (targetOpponentCallTendency > 0.58) isTargetLoose = true;
+            if (targetOpponentCallTendency < 0.44) isTargetTight = true;
+            if (isAggressiveTable) isTargetPassive = false;
+            if (!isAggressiveTable && isCallingStation) isTargetPassive = true;
+            }
+    }
 
     let fieldCallTendencySum = 0;
     let fieldCallTendencyCount = 0;
@@ -581,13 +682,13 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                         let bluffCatchChance = 0.5;
 
                         // 利用个体对手档案：面对激进对手更愿意抓诈唬
-                        if (targetOpponentProfile && targetOpponentProfile.aggression > 1.3) {
+                        if (targetOpponentAggression > 1.3) {
                             bluffCatchChance += 0.20;
                         }
-                        if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
-                            const isTargetStation = targetOpponentProfile.vpip > 0.55 && targetOpponentProfile.aggression < 0.85;
-                            const isTargetNit = targetOpponentProfile.vpip < 0.28 && targetOpponentProfile.pfr < 0.18 && targetOpponentProfile.aggression < 0.95;
-                            const isTargetManiac = targetOpponentProfile.vpip > 0.60 && targetOpponentProfile.aggression > 1.45;
+                        if (targetSampleWeight > 0 || (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3)) {
+                            const isTargetStation = targetOpponentVpip > 0.55 && targetOpponentAggression < 0.85;
+                            const isTargetNit = targetOpponentVpip < 0.28 && targetOpponentPfr < 0.18 && targetOpponentAggression < 0.95;
+                            const isTargetManiac = targetOpponentVpip > 0.60 && targetOpponentAggression > 1.45;
 
                             if (isTargetStation) bluffCatchChance -= 0.15;
                             if (isTargetNit) bluffCatchChance -= 0.20;
@@ -628,6 +729,67 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
                     }
                 }
             }
+        }
+    }
+
+    // EV 打分仲裁层：
+    // 先由规则树给出候选动作，再由统一 EV 分数做最终动作选择，减少阈值树抖动。
+    {
+        const minRaise = Math.max(ctx.bigBlind, ctx.lastRaiseAmount);
+        const canCheck = callAmt === 0;
+        const canCall = callAmt > 0 && callAmt < player.chips;
+        const canRaise = player.chips > callAmt + minRaise;
+        const canAllIn = player.chips > 0;
+
+        const priorAction = action;
+        const dangerPenalty = dangerAdjustment < 0 ? Math.abs(dangerAdjustment) * 1.2 : 0;
+        const ev = tuning.ev;
+
+        const foldScore = callAmt === 0
+            ? -0.9
+            : (potOdds - finalWinRate) * ev.foldBase + dangerPenalty;
+
+        const checkCallScore = canCheck
+            ? finalWinRate * ev.checkValue + (posAdvantage - 0.5) * ev.checkPosition
+            : (finalWinRate - potOdds) * ev.callBase - dangerPenalty * ev.dangerCallPenalty;
+
+        const raisePressure = (fieldFoldTendency - 0.5) * ev.raisePressure + (posAdvantage - 0.5) * ev.raisePosition;
+        const valueRaiseEdge = (finalWinRate - 0.56) * ev.raiseValueEdge;
+        const bluffRaiseEdge = isBluffing ? ev.bluffRaiseBase + Math.max(0, raisePressure) : 0;
+        let raiseScore = checkCallScore + valueRaiseEdge + bluffRaiseEdge;
+        if (!canRaise) raiseScore = -999;
+        if (isCallingStation && isBluffing) raiseScore -= ev.callingStationBluffPenalty;
+
+        const effectiveStackBB = (player.chips + player.currentBet) / ctx.bigBlind;
+        let allInScore = (finalWinRate - 0.63) * ev.allInBase - dangerPenalty * 0.4;
+        if (isShallowStack) allInScore += ev.shallowAllInBonus;
+        if (isPreflop && ctx.raisesInRound === 0 && effectiveStackBB > 25) allInScore -= ev.deepOpenAllInPenalty;
+        if (!canAllIn) allInScore = -999;
+
+        const priorBoost = ev.priorBoost;
+
+        const scoredActions: Array<{ action: 'fold' | 'call' | 'raise' | 'allin'; score: number }> = [
+            { action: 'fold', score: foldScore + (priorAction === 'fold' && callAmt > 0 ? priorBoost : 0) },
+            { action: 'call', score: checkCallScore + (priorAction === 'call' ? priorBoost : 0) },
+            { action: 'raise', score: raiseScore + (priorAction === 'raise' ? priorBoost : 0) },
+            { action: 'allin', score: allInScore + (priorAction === 'allin' ? priorBoost : 0) }
+        ];
+
+        const legalActions = scoredActions.filter(item => {
+            if (item.action === 'fold') return callAmt > 0;
+            if (item.action === 'call') return canCheck || canCall;
+            if (item.action === 'raise') return canRaise;
+            if (item.action === 'allin') return canAllIn;
+            return false;
+        });
+
+        legalActions.forEach(item => {
+            item.score += (Math.random() - 0.5) * ev.actionNoise;
+        });
+
+        if (legalActions.length > 0) {
+            legalActions.sort((a, b) => b.score - a.score);
+            action = legalActions[0].action;
         }
     }
 
@@ -756,13 +918,13 @@ export function makeSuperAIDecision(player: Player, ctx: SuperAIContext): SuperA
 
         if (!isBluffing) {
             betFactor += clamp((fieldCallTendency - 0.5) * 0.55, -0.10, 0.25);
-            if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
-                betFactor += clamp((getProfileCallTendency(targetOpponentProfile) - 0.5) * 0.45, -0.08, 0.18);
+            if (targetSampleWeight > 0 || (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3)) {
+                betFactor += clamp((targetOpponentCallTendency - 0.5) * 0.45, -0.08, 0.18);
             }
         } else {
             betFactor -= clamp((fieldCallTendency - 0.5) * 0.85, 0, 0.30);
-            if (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3) {
-                betFactor -= clamp((getProfileCallTendency(targetOpponentProfile) - 0.5) * 0.70, 0, 0.30);
+            if (targetSampleWeight > 0 || (targetOpponentProfile && targetOpponentProfile.handsPlayed > 3)) {
+                betFactor -= clamp((targetOpponentCallTendency - 0.5) * 0.70, 0, 0.30);
             }
         }
 

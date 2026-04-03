@@ -13,7 +13,7 @@ import type { AIMode } from '@/lib/poker/types';
 
 export default function TexasHoldemPage() {
   const { t } = useTranslation();
-  const { gameState, startGame, exitGame, humanAction, startNextRound, resetGame, startNewSession, getLeaderboard, isAutoPlay, toggleAutoPlay } = usePokerGame();
+  const { gameState, startGame, exitGame, humanAction, startNextRound, startNewSession, getLeaderboard, isAutoPlay, toggleAutoPlay } = usePokerGame();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Mode Selection Modal (Shown when no game is running)
@@ -97,7 +97,7 @@ export default function TexasHoldemPage() {
             showNextRound={stage === 'showdown'}
             onNextRound={startNextRound}
             isGameOver={isGameOver}
-            onReset={resetGame}
+            onReset={startNewSession}
             playerChips={human.chips}
             potSize={pot}
             isAutoPlay={isAutoPlay}

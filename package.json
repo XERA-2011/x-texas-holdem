@@ -8,12 +8,13 @@
     "build:aliyun": "cross-env NEXT_PUBLIC_BASE_PATH=/texas-holdem next build",
     "start": "next start",
     "lint": "eslint",
-    "test:random": "npx tsx tests/test-random.ts",
-    "test:scenarios": "npx tsx tests/test-scenarios.ts",
-    "test:unit": "npx tsx tests/test-poker-engine.ts",
-    "test:equity": "npx tsx tests/test-win-rate.ts",
-    "test:battle": "npx tsx tests/test-ai-battle.ts --games=50 --sims=1000",
-    "test:training": "npx tsx tests/test-training.ts"
+    "test:random": "node --import tsx tests/test-random.ts",
+    "test:scenarios": "node --import tsx tests/test-scenarios.ts",
+    "test:unit": "node --import tsx tests/test-poker-engine.ts",
+    "test:equity": "node --import tsx tests/test-win-rate.ts",
+    "test:battle": "node --import tsx tests/test-ai-battle.ts --games=50 --sims=1000",
+    "test:training": "node --import tsx tests/test-training.ts",
+    "test:tune": "node --import tsx tests/tune-super-ai.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -39,6 +40,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^6.0.2"
   },
   "packageManager": "pnpm@10.26.1"

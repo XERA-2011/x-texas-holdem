@@ -81,6 +81,9 @@ export class PokerGameEngine {
   /** 初始筹码 (用于计算变化) */
   initialChips: number = GAME_RULES.INITIAL_CHIPS;
   preflopRaiserId: number | null = null;
+  streetAggressorId: number | null = null;
+  previousStreetAggressorId: number | null = null;
+  lastAggressorId: number | null = null;
 
   constructor(onChange: (snapshot: ReturnType<PokerGameEngine['getSnapshot']>) => void) {
     this.onChange = onChange;
@@ -105,6 +108,9 @@ export class PokerGameEngine {
 
     this.logs = [];
     this.preflopRaiserId = null;
+    this.streetAggressorId = null;
+    this.previousStreetAggressorId = null;
+    this.lastAggressorId = null;
 
     // Initialize Random Expert Players
     const shuffledNames = [...BOT_NAMES].sort(() => 0.5 - Math.random());
@@ -145,6 +151,9 @@ export class PokerGameEngine {
   startNextRound() {
     if (this._isDestroyed) return;
     this.preflopRaiserId = null;
+    this.streetAggressorId = null;
+    this.previousStreetAggressorId = null;
+    this.lastAggressorId = null;
 
     // 1. 先进行淘汰判定 (Check for eliminations)
     this.players.forEach(p => {
@@ -399,6 +408,8 @@ export class PokerGameEngine {
         this.bet(player, totalBet);
 
         this.lastRaiseAmount = raiseAmount;
+        this.streetAggressorId = player.id;
+        this.lastAggressorId = player.id;
 
         this.highestBet = player.currentBet;
         this.raisesInRound++;
@@ -412,6 +423,8 @@ export class PokerGameEngine {
         if (player.currentBet > this.highestBet) {
           this.highestBet = player.currentBet;
           this.raisesInRound++;
+          this.streetAggressorId = player.id;
+          this.lastAggressorId = player.id;
           this.log(i18n.t('log.action_allin_raise', { name: i18n.t(player.name), amount: player.currentBet }), 'action');
         } else if (player.currentBet === this.highestBet) {
           // 这种情况通常已经被 call 分支覆盖，但以防万一
@@ -593,6 +606,8 @@ export class PokerGameEngine {
 
   nextStage() {
     this.currentTurnIdx = -1; // 清除回合
+    this.previousStreetAggressorId = this.streetAggressorId;
+    this.streetAggressorId = null;
 
     this.players.forEach(p => {
       p.currentBet = 0;
@@ -893,7 +908,11 @@ export class PokerGameEngine {
       dealerIdx: this.dealerIdx,
       monteCarloSims: this.superAIConfig.monteCarloSims,
       opponentProfiles: this.opponentProfiles,
-      preflopRaiserId: this.preflopRaiserId ?? undefined
+      preflopRaiserId: this.preflopRaiserId ?? undefined,
+      streetAggressorId: this.streetAggressorId ?? undefined,
+      previousStreetAggressorId: this.previousStreetAggressorId ?? undefined,
+      lastAggressorId: this.lastAggressorId ?? undefined,
+      tuning: this.superAIConfig.tuning
     };
 
     const decision = makeSuperAIDecision(player, ctx);
