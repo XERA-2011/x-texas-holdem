@@ -49,6 +49,27 @@ jobs:
             exit 1
           fi
 
+      - name: Preflight SSH connectivity
+        if: ${{ env.ALIYUN_HOST != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=22
+          echo "Checking TCP connectivity to ${ALIYUN_HOST}:${PORT} ..."
+
+          for i in 1 2 3; do
+            if timeout 5 bash -c "cat < /dev/null > /dev/tcp/${ALIYUN_HOST}/${PORT}"; then
+              echo "✅ SSH port is reachable."
+              exit 0
+            fi
+            echo "Attempt ${i}/3 failed; retrying..."
+            sleep 2
+          done
+
+          echo "::error::Unable to reach ${ALIYUN_HOST}:${PORT} from GitHub runner."
+          echo "::error::Check ECS public IP, security group inbound rule (TCP 22), and host firewall."
+          exit 1
+
       - name: Deploy to server
         if: ${{ env.ALIYUN_HOST != '' }}
         uses: easingthemes/ssh-deploy@v5.1.1
