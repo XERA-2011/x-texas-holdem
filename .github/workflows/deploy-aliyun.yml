@@ -72,7 +72,7 @@ jobs:
 
       - name: Deploy to server
         if: ${{ env.ALIYUN_HOST != '' }}
-        uses: easingthemes/ssh-deploy@v5.1.1
+        uses: easingthemes/ssh-deploy@v6.0.3
         with:
           SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_KEY }}
           REMOTE_HOST: ${{ secrets.ALIYUN_HOST }}
