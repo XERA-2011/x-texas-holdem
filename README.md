@@ -1,5 +1,9 @@
 # X-TEXAS-HOLDEM ♥️♠️♦️♣️
 
+[![CI](https://github.com/XERA-2011/x-texas-holdem/actions/workflows/ci.yml/badge.svg)](https://github.com/XERA-2011/x-texas-holdem/actions/workflows/ci.yml)
+[![Deploy](https://github.com/XERA-2011/x-texas-holdem/actions/workflows/deploy.yml/badge.svg)](https://github.com/XERA-2011/x-texas-holdem/actions/workflows/deploy.yml)
+[![Sponsor](https://img.shields.io/badge/Sponsor-❤️-ff69b4.svg)](https://github.com/XERA-2011/sponsor)
+
 A lightweight, single-player Texas Hold'em game powered by advanced AI. No download required.
 
 > 📱 **Mobile First**: Optimized for mobile browsers for the best immersive experience.
