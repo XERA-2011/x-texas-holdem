@@ -297,9 +297,15 @@ async function runSimulation(numGames: number, sims: number): Promise<Simulation
     const superWinRate = result.superWins / result.gamesPlayed;
 
     if (superWinRate > normalWinRate * 1.2) {
-        console.log(`\n🏆 超级电脑明显更强! (胜率高 ${((superWinRate / normalWinRate - 1) * 100).toFixed(0)}%)`);
+        const diffStr = normalWinRate > 0 
+            ? `${((superWinRate / normalWinRate - 1) * 100).toFixed(0)}%`
+            : '极高 (普通电脑胜场为 0)';
+        console.log(`\n🏆 超级电脑明显更强! (比普通电脑高 ${diffStr})`);
     } else if (normalWinRate > superWinRate * 1.2) {
-        console.log(`\n⚠️ 普通电脑反而更强? 可能需要检查超级AI逻辑`);
+        const diffStr = superWinRate > 0 
+            ? `${((normalWinRate / superWinRate - 1) * 100).toFixed(0)}%`
+            : '极高 (超级电脑胜场为 0)';
+        console.log(`\n⚠️ 普通电脑反而更强? (比超级电脑高 ${diffStr}) 可能需要检查超级AI逻辑`);
     } else {
         console.log(`\n📊 两者胜率接近，差异不明显`);
     }
