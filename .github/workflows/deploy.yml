@@ -62,7 +62,7 @@ jobs:
             exit 1
           fi
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@v6.0.9
         with:
           version: "10.26.1"
       - name: Setup Node
