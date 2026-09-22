@@ -44,5 +44,4 @@ pnpm test:tune      # Benchmark Super AI tuning candidates
 ### Build
 ```bash
 pnpm build          # Standard build
-pnpm build:aliyun   # Build for custom base path
 ```
