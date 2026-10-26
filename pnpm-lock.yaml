@@ -21,14 +21,14 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       i18next:
-        specifier: ^26.4.7
-        version: 26.4.7(typescript@6.0.3)
+        specifier: ^26.5.6
+        version: 26.5.6(typescript@6.0.3)
       i18next-browser-languagedetector:
         specifier: ^8.2.1
         version: 8.2.1
       lucide-react:
-        specifier: ^1.58.0
-        version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
+        specifier: ^1.61.0
+        version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: 16.4.2
         version: 16.4.2(@babel/core@7.29.7)(@types/node@26.6.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -42,8 +42,8 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       react-i18next:
-        specifier: ^17.0.19
-        version: 17.0.19(i18next@26.4.7(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3)
+        specifier: ^17.1.4
+        version: 17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3)
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
@@ -1664,8 +1664,8 @@ packages:
   i18next-browser-languagedetector@8.2.1:
     resolution: {integrity: sha512-bZg8+4bdmaOiApD7N7BPT9W8MLZG+nPTOFlLiJiT8uzKXFjhxw4v2ierCXOwB5sFDMtuA5G4kgYZ0AznZxQ/cw==}
 
-  i18next@26.4.7:
-    resolution: {integrity: sha512-p/3hqy6EcuqRs6wNwBYwGGC1fzBJSMxV9zMuN814ab/7QjdZbXfjXwuPZdQbngX6KDOTxM01uUiZyqmMB8ghZg==}
+  i18next@26.5.6:
+    resolution: {integrity: sha512-GFWrDwGmYhOQS3bKvjA2Ir2ob9ScEdyY1UbeQJ10jyVACGQ6XxmDYqC/lxEj/IPEJlPQYNRnYffDET6TM8mnFg==}
     peerDependencies:
       typescript: ^5 || ^6 || ^7
     peerDependenciesMeta:
@@ -1949,8 +1949,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@1.58.0:
-    resolution: {integrity: sha512-hXaFNm6mk6QVtBnDGBn1YAs8j2tGUk0A4s/CpclIcczfxeXiW1rdOLVo6zCsoIih9XXsGvDODQerl749a2n7bA==}
+  lucide-react@1.61.0:
+    resolution: {integrity: sha512-v2SQPPPNjnr+BlhL9Spuzmo5yR+hLkftfuE4E3jaxdNPgSH0hJKPcLJBP7yAta87jQNPsSERS59PJjCJ/CorBA==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -2144,8 +2144,8 @@ packages:
     peerDependencies:
       react: ^19.3.1
 
-  react-i18next@17.0.19:
-    resolution: {integrity: sha512-BRHqiqOfW4J/LBVtbBFHoBoZm/Ez2/tkHPitYtn0CSpkYhEaEAsZMPsg7hZlomu30UJYQ6ZKiP3pwa3QnxGvQw==}
+  react-i18next@17.1.4:
+    resolution: {integrity: sha512-1qGDcWXQ99pd5aPA9oikycr9lLoa6Iu79/aHS4pzgi3NLbM1hDE8RaAb1U/82vsssav9fsQARpcUtnmeGpFwEQ==}
     peerDependencies:
       i18next: '>= 26.2.0'
       react: '>= 16.8.0'
@@ -4114,7 +4114,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.6
 
-  i18next@26.4.7(typescript@6.0.3):
+  i18next@26.5.6(typescript@6.0.3):
     optionalDependencies:
       typescript: 6.0.3
 
@@ -4371,7 +4371,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@1.58.0(@types/react@19.3.0)(react@19.3.1):
+  lucide-react@1.61.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
@@ -4562,11 +4562,11 @@ snapshots:
       react: 19.3.1
       scheduler: 0.28.0
 
-  react-i18next@17.0.19(i18next@26.4.7(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3):
+  react-i18next@17.1.4(i18next@26.5.6(typescript@6.0.3))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3):
     dependencies:
       '@babel/runtime': 7.29.10
       html-parse-stringify: 4.0.1
-      i18next: 26.4.7(typescript@6.0.3)
+      i18next: 26.5.6(typescript@6.0.3)
       react: 19.3.1
       use-sync-external-store: 1.7.0(react@19.3.1)
     optionalDependencies:
